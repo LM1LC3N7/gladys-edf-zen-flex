@@ -24,3 +24,5 @@ the notes of the version's GitHub Release.
   of tomorrow, once per announced day.
 - Readings at fixed Paris times only while something is missing (3 a normal
   day), never closer than 10 minutes, restarts included; pauses on 429 and 403.
+- The status names the days of the Sobriété season never read (priced as Éco
+  days, never caught up: EDF answers for today and tomorrow only).

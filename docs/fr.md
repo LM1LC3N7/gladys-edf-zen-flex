@@ -30,13 +30,14 @@ EDF voit l’adresse IP de votre box et le User-Agent du module ; aucune autre d
 EDF annonce le lendemain au plus tard à 16 h. Le module lit aux heures de Paris suivantes, et seulement s’il lui
 manque quelque chose :
 
-| Heure               | Lu si                                       |
-| ------------------- | ------------------------------------------- |
-| 00:15               | le type du jour est inconnu                 |
-| 10:15, 13:15, 16:15 | le type du jour ou du lendemain est inconnu |
-| 17:15, 19:15, 22:15 | idem (annonce tardive)                      |
+| Heure               | Lu si                                                                                           |
+| ------------------- | ----------------------------------------------------------------------------------------------- |
+| 00:15               | le type du jour est inconnu                                                                     |
+| 10:15, 13:15, 16:15 | le type du jour ou du lendemain est inconnu ; à 16:15 aussi si le lendemain a été lu avant 16 h |
+| 17:15, 19:15, 22:15 | idem (annonce tardive)                                                                          |
 
-Une journée ordinaire fait donc 3 lectures (10:15, 13:15, 16:15), puis plus rien jusqu’au lendemain. Au premier
+(EDF peut encore changer un lendemain lu avant 16 h : il est relu une fois à 16:15.) Une journée ordinaire fait
+donc 3 lectures (10:15, 13:15, 16:15), puis plus rien jusqu’au lendemain. Au premier
 démarrage, une lecture part tout de suite. Deux lectures sont espacées d’au moins 10 minutes, redémarrages
 compris (l’heure de la tentative est écrite dans `/data` avant la requête).
 
@@ -67,7 +68,12 @@ EDF peut les réviser deux fois par an : reprenez ceux de votre facture.
 - **Jours Bonus** : facturés comme des jours Éco. La récompense versée par EDF quand vous suivez sa consigne
   n’est pas calculée.
 - **Jour absent du calendrier** (pas encore annoncé, module arrêté) : compté comme un jour Éco, ce qu’est la
-  grande majorité des jours. Dès que le jour arrive dans le calendrier, Gladys recalcule les coûts concernés.
+  grande majorité des jours. Un jour lu plus tard (la veille à 16 h, ou le jour même) entre au calendrier et Gladys
+  recalcule les coûts concernés.
+- **Un jour manqué en entier n’est jamais rattrapé** : EDF ne répond que pour aujourd’hui et demain. Si le module
+  ou le site EDF est indisponible de la veille 16 h à la fin du jour, ce jour reste compté Éco, même s’il était un
+  jour Sobriété (heures pleines alors sous-évaluées de 0,53 €/kWh). Le statut nomme ces jours (jours de semaine
+  de la période Sobriété, hors fériés) : vérifiez-les dans votre espace client EDF.
 - Un jour va de minuit à minuit (heure de Paris). Les changements d’heure sont gérés par Gladys.
 
 ## Les scènes
@@ -76,7 +82,7 @@ Déclencheur **« Jour EDF Zen Flex annoncé »** : il part quand le module lit 
 lendemain (en général vers 16 h 15), avec le filtre « Type du lendemain » (Éco, Sobriété, Bonus ; vide : tous).
 Variables : `day_type` (`eco`, `sobriete` ou `bonus`) et `date` (`AAAA-MM-JJ`).
 
-- Une fois par jour annoncé ; de nouveau si EDF change ce type avant minuit.
+- Une fois par jour annoncé ; de nouveau si la lecture de 16 h 15 trouve ce type changé (lendemain lu avant 16 h).
 - Si Gladys ne prend pas l’annonce, elle est renvoyée (après 1, 5, 15 minutes, puis toutes les 30 minutes)
   jusqu’à minuit, puis abandonnée : une annonce n’est plus envoyée une fois son jour commencé.
 - Un module démarré après minuit ne déclenche rien pour le jour en cours.
@@ -90,8 +96,9 @@ actuel » du contrat.
 
 L’écran de l’intégration affiche : le type d’aujourd’hui et de demain, le nombre de jours Sobriété (sur 20) et
 Bonus vus par le module dans l’année, l’heure de la dernière lecture, et ce qui ne va pas (EDF illisible avec
-la raison et l’heure du prochain essai, calendrier refusé, annonce non envoyée, `/data` non inscriptible). Les
-compteurs ne voient que les jours lus depuis l’installation.
+la raison et l’heure du prochain essai, calendrier refusé, annonce non envoyée, `/data` non inscriptible), et les jours de
+la période Sobriété jamais lus depuis l’installation (« Non lu(s) … compté(s) comme jours Éco », les 5 plus
+récents). Les compteurs ne voient que les jours lus depuis l’installation.
 
 ## Ce que garde `/data`
 

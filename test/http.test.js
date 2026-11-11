@@ -50,8 +50,11 @@ test('a redirect is never followed', async (t) => {
     res.writeHead(302, { location: '/elsewhere' });
     res.end();
   });
-  await assert.rejects(getStatus('2026-11-11', { fetchImpl }), (err) => err.code === 'network');
-  assert.equal(requests.length, 1);
+  await assert.rejects(
+    getStatus('2026-11-11', { fetchImpl }),
+    (err) => err.code === 'redirect' && err.status === 302,
+  );
+  assert.equal(requests.length, 1, 'the location is never asked');
 });
 
 test('a body larger than 4 KB is cut, declared or not', async (t) => {
@@ -121,4 +124,20 @@ test('Retry-After: seconds, an HTTP date, garbage', () => {
   assert.equal(retryAfterMs('soon', now), undefined);
   assert.equal(retryAfterMs(undefined, now), undefined);
   assert.equal(retryAfterMs('9'.repeat(100), now), undefined);
+});
+
+test('a 429 with an HTTP date is measured on the server clock (its Date header)', async (t) => {
+  const serverNow = Date.parse('2026-11-11T09:00:00Z');
+  const { fetchImpl } = await server(t, (req, res) => {
+    res.writeHead(429, {
+      date: new Date(serverNow).toUTCString(),
+      'retry-after': new Date(serverNow + 120_000).toUTCString(),
+    });
+    res.end();
+  });
+  // The local clock is an hour ahead of the server.
+  await assert.rejects(
+    getStatus('2026-11-11', { fetchImpl, now: () => serverNow + 3_600_000 }),
+    (err) => err.code === 'rate_limited' && err.retryAfter === 120_000,
+  );
 });

@@ -83,3 +83,34 @@ export function parisTime(t) {
   const { minutes } = paris(t);
   return `${two(Math.floor(minutes / 60))}:${two(minutes % 60)}`;
 }
+
+/** Easter Sunday of `year` (Gregorian, anonymous algorithm), `YYYY-MM-DD`. */
+export function easter(year) {
+  const a = year % 19;
+  const b = Math.floor(year / 100);
+  const c = year % 100;
+  const d = Math.floor(b / 4);
+  const e = b % 4;
+  const f = Math.floor((b + 8) / 25);
+  const g = Math.floor((b - f + 1) / 3);
+  const h = (19 * a + b - d - g + 15) % 30;
+  const i = Math.floor(c / 4);
+  const k = c % 4;
+  const l = (32 + 2 * e + 2 * i - h - k) % 7;
+  const m = Math.floor((a + 11 * h + 22 * l) / 451);
+  const month = Math.floor((h + l - 7 * m + 114) / 31);
+  const day = ((h + l - 7 * m + 114) % 31) + 1;
+  return `${year}-${two(month)}-${two(day)}`;
+}
+
+const FIXED_HOLIDAYS = ['01-01', '05-01', '05-08', '07-14', '08-15', '11-01', '11-11', '12-25'];
+
+/** A French national public holiday (Easter Monday, Ascension and Whit Monday included). */
+export function isHoliday(date) {
+  if (FIXED_HOLIDAYS.includes(date.slice(5))) return true;
+  const e = easter(Number(date.slice(0, 4)));
+  return [1, 39, 50].some((n) => addDays(e, n) === date);
+}
+
+/** The day of the week of a date (0 = Sunday), no time zone involved. */
+export const weekdayOf = (date) => new Date(`${date}T12:00:00Z`).getUTCDay();

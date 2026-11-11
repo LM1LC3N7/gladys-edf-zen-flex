@@ -38,7 +38,7 @@
   {
     "name": "http: redirects followed",
     "file": "src/http.js",
-    "from": "redirect: 'error'",
+    "from": "redirect: 'manual'",
     "to": "redirect: 'follow'"
   },
   {
@@ -212,13 +212,13 @@
   {
     "name": "schedule: tomorrow not looked for",
     "file": "src/schedule.js",
-    "from": "return minutesOf(slot) >= minutesOf(ANNOUNCE_FROM) && !known(addDays(date, 1));",
-    "to": "return !known(addDays(date, 1));"
+    "from": "if (minutesOf(slot) < minutesOf(ANNOUNCE_FROM)) return false;",
+    "to": "if (minutesOf(slot) < minutesOf(ANNOUNCE_FROM) - 1000) return false;"
   },
   {
     "name": "schedule: every slot read",
     "file": "src/schedule.js",
-    "from": "if (t > attemptAt && needed(date, slot, known)) {",
+    "from": "if (t > attemptAt && needed(date, slot, known, early)) {",
     "to": "if (t > attemptAt) {"
   },
   {
@@ -262,5 +262,149 @@
     "file": "src/app.js",
     "from": "      if (wait > cut) {\n        this.publishStatus();",
     "to": "      if (wait > cut) {"
+  },
+  {
+    "name": "R2 app: a newer pending announcement cleared by an older publication",
+    "file": "src/app.js",
+    "from": "if (this.pendingAnnounce === pending) this.pendingAnnounce = undefined;",
+    "to": "this.pendingAnnounce = undefined;"
+  },
+  {
+    "name": "R3 http: Retry-After date against the local clock, not the server Date",
+    "file": "src/http.js",
+    "from": "Number.isFinite(served) ? served : now(),",
+    "to": "now(),"
+  },
+  {
+    "name": "R4 app: a pending announcement of another day restored",
+    "file": "src/app.js",
+    "from": "if (pending && pending.date === tomorrow) this.pendingAnnounce = pending;",
+    "to": "if (pending) this.pendingAnnounce = pending;"
+  },
+  {
+    "name": "R5 app: a future announced restored",
+    "file": "src/app.js",
+    "from": "if (announced && announced.date <= tomorrow) this.announced = announced;",
+    "to": "if (announced) this.announced = announced;"
+  },
+  {
+    "name": "R6 app: status counts other years",
+    "file": "src/app.js",
+    "from": "if (!date.startsWith(`${year}-`)) continue;",
+    "to": ""
+  },
+  {
+    "name": "R7 app: announcement without a type",
+    "file": "src/app.js",
+    "from": "parsed.tomorrow &&",
+    "to": "true &&"
+  },
+  {
+    "name": "R8 app: old days sent again at each connection",
+    "file": "src/app.js",
+    "from": "if (date >= from && held.get(date) !== type) this.published.delete(date);",
+    "to": "if (held.get(date) !== type) this.published.delete(date);"
+  },
+  {
+    "name": "R9 app: failures not reset by a success",
+    "file": "src/app.js",
+    "from": "this.meta.failures = 0;",
+    "to": ""
+  },
+  {
+    "name": "R10 app: restart-loop guard shortened to 1 min",
+    "file": "src/app.js",
+    "from": "if (up < MIN_GAP) {",
+    "to": "if (up < MIN_GAP / 10) {"
+  },
+  {
+    "name": "R12 store: no size bound on /data",
+    "file": "src/store.js",
+    "from": "if ((await stat(file)).size > MAX_STATE_BYTES) return { status: 'unreadable' };",
+    "to": ""
+  },
+  {
+    "name": "R13 store: unreadable /data taken as missing (empty)",
+    "file": "src/store.js",
+    "from": "return err?.code === 'ENOENT' ? { status: 'missing' } : { status: 'unreadable' };",
+    "to": "return { status: 'missing' };"
+  },
+  {
+    "name": "R14 store: a JSON that is not an object accepted",
+    "file": "src/store.js",
+    "from": "return data && typeof data === 'object' && !Array.isArray(data)",
+    "to": "return true"
+  },
+  {
+    "name": "R15 store: writes not queued",
+    "file": "src/store.js",
+    "from": "const job = queue.then(\n        () => write(data),\n        () => write(data),\n      );",
+    "to": "const job = write(data);"
+  },
+  {
+    "name": "constants: dateRelevant with leading zeros",
+    "file": "src/constants.js",
+    "from": ".map((part) => String(Number(part)))",
+    "to": ".map((part) => part)"
+  },
+  {
+    "name": "schedule: tomorrow read early not read again",
+    "file": "src/schedule.js",
+    "from": "return !known(tomorrow) || (slot === FINAL_SLOT && early(tomorrow));",
+    "to": "return !known(tomorrow);"
+  },
+  {
+    "name": "app: early read never marked",
+    "file": "src/app.js",
+    "from": "if (early && parsed.tomorrow) this.early.add(tomorrow);",
+    "to": ""
+  },
+  {
+    "name": "app: holidays among the missed days",
+    "file": "src/app.js",
+    "from": "    !isHoliday(date) &&\n",
+    "to": ""
+  },
+  {
+    "name": "app: missed days outside the season",
+    "file": "src/app.js",
+    "from": "SOBRIETE_SEASON.some(([from, to]) => md >= from && md <= to)",
+    "to": "true"
+  },
+  {
+    "name": "app: missed days on weekends",
+    "file": "src/app.js",
+    "from": "weekday >= 1 &&\n    weekday <= 5 &&\n",
+    "to": ""
+  },
+  {
+    "name": "app: missed days before the first reading",
+    "file": "src/app.js",
+    "from": "if (this.since === undefined) this.since = today;",
+    "to": ""
+  },
+  {
+    "name": "app: a save during a write lost",
+    "file": "src/app.js",
+    "from": "while (this.saveDone < this.saveAsked) {",
+    "to": "if (this.saveDone < this.saveAsked) {"
+  },
+  {
+    "name": "app: no write at a clean stop",
+    "file": "src/app.js",
+    "from": "if (this.loaded) await this.save();",
+    "to": ""
+  },
+  {
+    "name": "http: redirections not told apart",
+    "file": "src/http.js",
+    "from": "if (status >= 300 && status < 400) {",
+    "to": "if (false) {"
+  },
+  {
+    "name": "time: Easter Monday not a holiday",
+    "file": "src/time.js",
+    "from": "return [1, 39, 50].some",
+    "to": "return [39, 50].some"
   }
 ]

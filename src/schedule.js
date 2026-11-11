@@ -9,7 +9,7 @@
 // A failure retries on its own steps, a 429 or a 403 pauses.
 // -----------------------------------------------------------------------------
 
-import { ANNOUNCE_FROM, MAX_RETRY, MIN_GAP, RETRY_STEPS, SLOTS } from './constants.js';
+import { ANNOUNCE_FROM, FINAL_SLOT, MAX_RETRY, MIN_GAP, RETRY_STEPS, SLOTS } from './constants.js';
 import { addDays, minutesOf, paris, parisInstant } from './time.js';
 
 /** The delay after `failures` failed readings in a row. */
@@ -18,19 +18,25 @@ export function retryDelay(failures) {
   return failures > RETRY_STEPS.length ? MAX_RETRY : RETRY_STEPS[failures - 1];
 }
 
-/** Whether the reading time `slot` of `date` has something to learn. */
-export function needed(date, slot, known) {
+/**
+ * Whether the reading time `slot` of `date` has something to learn: today
+ * unknown, tomorrow unknown (from ANNOUNCE_FROM), or tomorrow read before the
+ * announcement time (`early`: read once more at FINAL_SLOT).
+ */
+export function needed(date, slot, known, early = () => false) {
   if (!known(date)) return true;
-  return minutesOf(slot) >= minutesOf(ANNOUNCE_FROM) && !known(addDays(date, 1));
+  if (minutesOf(slot) < minutesOf(ANNOUNCE_FROM)) return false;
+  const tomorrow = addDays(date, 1);
+  return !known(tomorrow) || (slot === FINAL_SLOT && early(tomorrow));
 }
 
 /**
  * The instant (epoch ms) of the next reading.
  * `now`: the wall clock, read once by the caller; `attemptAt`: the last
  * attempt (undefined: never); `known(date)`: whether the type of that day is
- * known; `failures`, `pausedUntil`: from the last attempts.
+ * known; `early(date)`: whether it was read before the announcement time; `failures`, `pausedUntil`: from the last attempts.
  */
-export function nextReadingAt({ now, attemptAt, known, failures = 0, pausedUntil }) {
+export function nextReadingAt({ now, attemptAt, known, early, failures = 0, pausedUntil }) {
   let due;
   if (attemptAt === undefined) {
     due = now;
@@ -44,7 +50,7 @@ export function nextReadingAt({ now, attemptAt, known, failures = 0, pausedUntil
       const date = addDays(first, d);
       for (const slot of SLOTS) {
         const t = parisInstant(date, slot);
-        if (t > attemptAt && needed(date, slot, known)) {
+        if (t > attemptAt && needed(date, slot, known, early)) {
           due = t;
           break;
         }

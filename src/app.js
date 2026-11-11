@@ -21,6 +21,7 @@
 // -----------------------------------------------------------------------------
 
 import {
+  ANNOUNCE_BY,
   BLOCKED_PAUSE,
   CALENDAR_KEY,
   DAY_TYPES,
@@ -34,6 +35,7 @@ import {
   PAUSE_MIN,
   SAVE_TIMEOUT,
   STATUS_TIMEOUT,
+  SOBRIETE_SEASON,
   STORE_RETRY,
   SYNC_RETRY_STEPS,
   TRIGGERS,
@@ -42,7 +44,16 @@ import { FormatError, parseStatus } from './edf.js';
 import { SourceError, getStatus } from './http.js';
 import { T } from './i18n.js';
 import { nextReadingAt, retryDelay } from './schedule.js';
-import { addDays, daysBetween, isDate, paris, parisInstant } from './time.js';
+import {
+  addDays,
+  daysBetween,
+  isDate,
+  isHoliday,
+  minutesOf,
+  paris,
+  parisInstant,
+  weekdayOf,
+} from './time.js';
 
 const realTimers = { setTimeout, clearTimeout };
 const ERROR_CODES = [
@@ -54,7 +65,20 @@ const ERROR_CODES = [
   'timeout',
   'too_large',
   'invalid',
+  'redirect',
 ];
+
+/** A day EDF may make a Sobriété day: a weekday of the season, not a public holiday. */
+export function sobrieteDay(date) {
+  const md = date.slice(5);
+  const weekday = weekdayOf(date);
+  return (
+    weekday >= 1 &&
+    weekday <= 5 &&
+    !isHoliday(date) &&
+    SOBRIETE_SEASON.some(([from, to]) => md >= from && md <= to)
+  );
+}
 
 /** A wall date read from /data: a finite number not in the future, else undefined. */
 const pastDate = (value, now) =>
@@ -95,6 +119,10 @@ export class App {
     this.meta = { attemptAt: undefined, checkedAt: undefined, failures: 0, pausedUntil: undefined };
     this.lastError = undefined;
     this.retryAt = undefined;
+    /** The Paris date of the first successful reading (the missed days are counted from it). */
+    this.since = undefined;
+    /** Days of tomorrow read before the announcement time: read again once at 16:15. */
+    this.early = new Set();
     /** undefined, 'ok', 'refused' (another integration owns the key) or 'failed'. */
     this.calendar = undefined;
     this.sceneError = false;
@@ -113,7 +141,11 @@ export class App {
     this.startedMono = monotonic();
     this.lastStatus = undefined;
     this.statusJob = Promise.resolve();
-    this.saving = undefined;
+    /** Saves asked and written (sequence numbers), the write under way. */
+    this.saveAsked = 0;
+    this.saveDone = 0;
+    this.writing = undefined;
+    this.saveWaiters = new Set();
     /** Why the last write of /data failed ('write', 'timeout'), undefined when it worked. */
     this.dataError = undefined;
   }
@@ -154,6 +186,8 @@ export class App {
     this.clearTimers();
     await this.checking?.catch(() => {});
     await this.syncing?.catch(() => {});
+    // A clean stop writes the state (bounded in time).
+    if (this.loaded) await this.save();
   }
 
   clearTimers() {
@@ -233,6 +267,13 @@ export class App {
     };
     restoreDays(data.days, this.days);
     restoreDays(data.published, this.published);
+    const today = paris(now).date;
+    this.since = isDate(data.since) && data.since <= today ? data.since : undefined;
+    if (this.since === undefined && this.days.size > 0)
+      this.since = [...this.days.keys()].sort()[0];
+    for (const date of Array.isArray(data.early) ? data.early.slice(0, 4) : []) {
+      if (isDate(date) && date === tomorrow && this.days.has(date)) this.early.add(date);
+    }
     const announced = dayOf(data.announced);
     if (announced && announced.date <= tomorrow) this.announced = announced;
     const pending = dayOf(data.pendingAnnounce);
@@ -260,42 +301,71 @@ export class App {
       published: list(this.published),
       announced: this.announced,
       pendingAnnounce: this.pendingAnnounce,
+      since: this.since,
+      early: [...this.early],
     };
   }
 
   /**
-   * One write at a time, bounded in time: a write that hangs counts as a
-   * failed one (the data stays in memory) and the next saves are skipped
-   * until it ends. Never throws; resolves whether the write worked.
+   * Asks for the current state to be written and waits for it, at most
+   * SAVE_TIMEOUT. One write at a time: a save asked during a write is done
+   * right after it, with the state of that moment, so a slow /data never
+   * loses a change (a write that hangs is not abandoned: what was asked
+   * meanwhile follows it when it ends). Never throws; resolves whether the
+   * state of the call is written.
    */
   async save() {
-    if (this.saving) {
-      this.dataError = 'timeout';
-      return false;
-    }
+    this.saveAsked += 1;
+    const wanted = this.saveAsked;
+    if (!this.writing) this.writing = this.flush();
     let timer;
-    const job = Promise.resolve().then(() => this.store.save(this.stateToSave()));
-    this.saving = job.then(
-      () => {},
-      () => {},
-    );
-    this.saving.then(() => {
-      this.saving = undefined;
-    });
     const late = new Promise((resolve) => {
       timer = this.timers.setTimeout(() => resolve('timeout'), SAVE_TIMEOUT);
     });
+    const done = new Promise((resolve) => this.saveWaiters.add({ wanted, resolve }));
     try {
-      const result = await Promise.race([job.then(() => 'ok'), late]);
-      this.dataError = result === 'ok' ? undefined : 'timeout';
-    } catch (err) {
-      this.logger.warn(`Could not write /data: ${err?.code ?? 'error'}`);
-      this.dataError = 'write';
+      const result = await Promise.race([done, late]);
+      if (result === 'timeout') {
+        this.dataError = 'timeout';
+        this.logger.warn('Writing /data takes too long: done in the background');
+      }
+      return result === 'ok';
     } finally {
       this.timers.clearTimeout(timer);
     }
-    if (this.dataError === 'timeout') this.logger.warn('Writing /data takes too long: skipped');
-    return this.dataError === undefined;
+  }
+
+  /** Writes until every state asked is written; a failure stops until the next save. */
+  async flush() {
+    try {
+      while (this.saveDone < this.saveAsked) {
+        const seq = this.saveAsked;
+        await this.store.save(this.stateToSave());
+        this.saveDone = seq;
+        this.wakeSavers(false);
+        if (this.dataError !== undefined) {
+          this.dataError = undefined;
+          this.publishStatus();
+        }
+      }
+    } catch (err) {
+      this.logger.warn(`Could not write /data: ${err?.code ?? 'error'}`);
+      this.dataError = 'write';
+      this.publishStatus();
+    } finally {
+      this.writing = undefined;
+      this.wakeSavers(true);
+    }
+  }
+
+  /** Resolves the saves whose state is written; at the end of a flush, the others fail. */
+  wakeSavers(ended) {
+    for (const waiter of this.saveWaiters) {
+      if (this.saveDone >= waiter.wanted) waiter.resolve('ok');
+      else if (ended) waiter.resolve('failed');
+      else continue;
+      this.saveWaiters.delete(waiter);
+    }
   }
 
   // --- Schedule -------------------------------------------------------------------
@@ -309,6 +379,7 @@ export class App {
       now,
       attemptAt: this.meta.attemptAt,
       known: this.known,
+      early: (date) => this.early.has(date),
       failures: this.meta.failures,
       pausedUntil: this.meta.pausedUntil,
     });
@@ -398,6 +469,12 @@ export class App {
     if (!failure) {
       this.learn(today, parsed.today);
       this.learn(tomorrow, parsed.tomorrow);
+      if (this.since === undefined) this.since = today;
+      // Read before the announcement time: read once more at FINAL_SLOT.
+      const early = paris(t).minutes < minutesOf(ANNOUNCE_BY);
+      for (const date of this.early) if (date !== tomorrow) this.early.delete(date);
+      if (early && parsed.tomorrow) this.early.add(tomorrow);
+      else this.early.delete(tomorrow);
       if (
         parsed.tomorrow &&
         (this.announced?.date !== tomorrow || this.announced?.type !== parsed.tomorrow)
@@ -657,6 +734,7 @@ export class App {
             calendar: this.calendar,
             dataError: this.dataError,
             sceneError: this.sceneError,
+            missed: this.missedDays(today),
           }),
         };
       }
@@ -666,6 +744,21 @@ export class App {
     this.lastStatus = key;
     this.statusJob = this.statusJob.then(() => this.sendStatus(state));
     return this.statusJob;
+  }
+
+  /**
+   * The days of the Sobriété season since the first reading (a year at most)
+   * whose type was never read: priced as Éco days by the template, never
+   * caught up (EDF only answers for today and tomorrow). Most recent first.
+   */
+  missedDays(today) {
+    const missed = [];
+    if (this.since === undefined) return missed;
+    const from = this.since > addDays(today, -365) ? this.since : addDays(today, -365);
+    for (let date = addDays(today, -1); date >= from; date = addDays(date, -1)) {
+      if (!this.days.has(date) && sobrieteDay(date)) missed.push(date);
+    }
+    return missed;
   }
 
   async sendStatus(state) {

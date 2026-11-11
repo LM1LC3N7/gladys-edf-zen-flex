@@ -5,7 +5,7 @@
 
 import { createFakeGladys } from '@gladysassistant/integration-sdk/testing';
 import { App } from '../../src/app.js';
-import { CALENDAR_KEY, STATUS_URL, TRIGGERS } from '../../src/constants.js';
+import { CALENDAR_KEY, STATUS_URL, TRIGGERS, dateParam } from '../../src/constants.js';
 import { createMemoryStore } from '../../src/store.js';
 import { paris } from '../../src/time.js';
 import { testClock } from './clock.js';
@@ -53,7 +53,10 @@ export function createEdf({ now }) {
     if (out instanceof Response) return out;
     if (out !== undefined) return json(out);
     const p = paris(now());
-    if (request.date !== p.date) return new Response('<html>error</html>', { status: 503 });
+    // The endpoint answers only for today, in the form without leading zeros.
+    if (request.date !== dateParam(p.date)) {
+      return new Response('<html>error</html>', { status: 503 });
+    }
     const tomorrow = new Date(Date.parse(`${p.date}T00:00:00Z`) + DAY).toISOString().slice(0, 10);
     return json({
       couleurJourJ: edf.code(edf.days[p.date] ?? 'eco'),

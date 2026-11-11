@@ -1,7 +1,7 @@
 // -----------------------------------------------------------------------------
 // The only place that talks to the network: one GET of the EDF endpoint with
 // the module's User-Agent (never a browser's nor the app's), no cookie, no
-// login, a timeout, no redirect followed and a body read up to a bound, never
+// login, a timeout, no redirect followed (3xx: an error) and a body read up to a bound, never
 // whole. Taken from gladys-netzentgelte-14a (approved).
 // -----------------------------------------------------------------------------
 
@@ -9,7 +9,7 @@ import { HTTP_TIMEOUT, MAX_BODY_BYTES, USER_AGENT, statusUrl } from './constants
 
 export class SourceError extends Error {
   /**
-   * `code`: 'rate_limited' (429), 'blocked' (403), 'server' (5xx), 'http',
+   * `code`: 'rate_limited' (429), 'blocked' (403), 'server' (5xx), 'redirect' (3xx), 'http',
    * 'network', 'timeout', 'too_large', 'invalid' (not the expected JSON).
    */
   constructor(code, message, { status, retryAfter } = {}) {
@@ -80,7 +80,7 @@ export async function getStatus(
     response = await fetchImpl(statusUrl(date), {
       headers: { 'User-Agent': USER_AGENT, Accept: 'application/json' },
       signal: AbortSignal.timeout(Math.max(1, timeout)),
-      redirect: 'error',
+      redirect: 'manual',
       credentials: 'omit',
     });
   } catch (err) {
@@ -114,6 +114,11 @@ export async function getStatus(
         response.headers?.get?.('retry-after'),
         Number.isFinite(served) ? served : now(),
       ),
+    });
+  }
+  if (status >= 300 && status < 400) {
+    throw new SourceError('redirect', `The EDF website answered a redirection (${status})`, {
+      status,
     });
   }
   if (status === 403) {

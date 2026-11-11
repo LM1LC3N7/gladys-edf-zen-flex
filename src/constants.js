@@ -13,12 +13,26 @@ export const VERSION = pkg.version;
 export const USER_AGENT = `gladys-edf-zen-flex/${VERSION} (+https://github.com/LM1LC3N7/gladys-edf-zen-flex)`;
 
 /**
- * The public, undocumented endpoint of the EDF website that its Zen Flex page
- * reads (no account, no login). It answers only for the current day of Paris
- * (`dateRelevant=YYYY-MM-DD`): the type of today and of tomorrow.
+ * The public, undocumented endpoint of the EDF website (no account, no
+ * login). It answers only for the current day of Paris: the type of today and
+ * of tomorrow; another date gets a 503.
  */
 export const STATUS_URL = 'https://particulier.edf.fr/services/rest/opm/getOPMStatut';
-export const statusUrl = (date) => `${STATUS_URL}?dateRelevant=${date}`;
+
+/**
+ * `dateRelevant` without leading zeros (`2027-1-5`), as the reference sends it
+ * (AuroreVgn/edf-zen-flex, api.py: `f"{day.year}-{day.month}-{day.day}"`, the
+ * form its users run every day). The script of the EDF Zen Flex page, read on
+ * 2026-11-11, does not call this endpoint, so the website gives no other
+ * form; a day and a month of two digits read the same both ways (checked for
+ * real on 2026-11-11). To confirm on a day 1-9 (TODO.md).
+ */
+export const dateParam = (date) =>
+  date
+    .split('-')
+    .map((part) => String(Number(part)))
+    .join('-');
+export const statusUrl = (date) => `${STATUS_URL}?dateRelevant=${dateParam(date)}`;
 
 /** The day types of the tariff calendar, by EDF code. Any other code is refused. */
 export const CODES = Object.freeze({ RAS: 'eco', ZENF_PM: 'sobriete', ZENF_BONIF: 'bonus' });
@@ -56,6 +70,19 @@ export const NEAR_DAYS = 2;
 export const SLOTS = Object.freeze(['00:15', '10:15', '13:15', '16:15', '17:15', '19:15', '22:15']);
 /** From this time of a Paris day, tomorrow is looked for. */
 export const ANNOUNCE_FROM = '10:00';
+/**
+ * EDF announces tomorrow by 16:00 at the latest: a type of tomorrow read
+ * before is read once more at FINAL_SLOT (EDF may still change it).
+ */
+export const ANNOUNCE_BY = '16:00';
+export const FINAL_SLOT = '16:15';
+/** The Sobriété season (EDF terms): month-day ranges, weekdays, public holidays excepted. */
+export const SOBRIETE_SEASON = Object.freeze([
+  ['01-01', '04-15'],
+  ['10-15', '12-31'],
+]);
+/** Missed days named in the status at most (the most recent). */
+export const MAX_MISSED_SHOWN = 5;
 /** Two requests are never closer than this, restarts included. */
 export const MIN_GAP = 10 * 60_000;
 /** After a failed reading: 5, 15, 30, 60 minutes, then every 2 hours. */

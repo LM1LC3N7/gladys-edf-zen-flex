@@ -2,6 +2,10 @@
 
 ## Before announcing
 
+- [ ] **Real reading on 2026-12-01** (a day 1-9) before any publication: the
+      module sends `dateRelevant=2026-12-1` (the reference form, review r1 I1).
+      If EDF answers 503, switch `dateParam` (src/constants.js) to `2026-12-01`.
+
 - [ ] Test on a real Gladys 5.2+: install, the status, a Zen Flex contract on a
       meter, the costs of an Éco and a Sobriété day, the "day announced" trigger
       in a scene, the dashboard price widget.
@@ -57,6 +61,20 @@
   changed by EDF replaces the old one (logged) and Gladys recalculates.
   Days answered on a weekend or outside the Sobriété season are published as
   EDF gives them (the meter follows EDF's signal), not second-guessed.
+- **`dateRelevant` without leading zeros** (review r1): the reference sends
+  `{year}-{month}-{day}` (api.py:20, used daily by its users); the script of the
+  EDF Zen Flex page (component `ejpTempoPmButton`, read on 2026-11-11) does not
+  call the endpoint, so no other form was found. Checked equal on 2026-11-11
+  only; pinned by a test on 2027-01-05.
+- **Missed days never caught up** (review r1): the endpoint answers for today
+  and tomorrow only. Such a day stays priced as Éco (fallback); the status
+  names the weekdays of the Sobriété season (French public holidays excepted)
+  never read since the first reading, a year back at most, to be checked in
+  the EDF customer area.
+- **16:15 read again** (review r1): a tomorrow read before 16:00 is read once
+  more at 16:15 (EDF announces by 16:00), one request at most.
+- **/data writes** (review r1): a save asked during a write is done right after
+  it with the state of that moment; a clean stop writes the state.
 - **Schedule by slots** (Paris): 00:15, 10:15, 13:15, 16:15, 17:15, 19:15,
   22:15, each skipped when nothing is missing; MIN_GAP 10 minutes from `/data`
   and from a monotonic clock; timers cut to one hour. No faster polling than

@@ -30,13 +30,14 @@ EDF sees the IP address of your home and the User-Agent of the module; no other 
 EDF announces tomorrow by 16:00 at the latest. The module reads at these Paris times, and only when something is
 missing:
 
-| Time                | Read when                                |
-| ------------------- | ---------------------------------------- |
-| 00:15               | the type of today is unknown             |
-| 10:15, 13:15, 16:15 | the type of today or tomorrow is unknown |
-| 17:15, 19:15, 22:15 | the same (late announcement)             |
+| Time                | Read when                                                                                   |
+| ------------------- | ------------------------------------------------------------------------------------------- |
+| 00:15               | the type of today is unknown                                                                |
+| 10:15, 13:15, 16:15 | the type of today or tomorrow is unknown; at 16:15 also when tomorrow was read before 16:00 |
+| 17:15, 19:15, 22:15 | the same (late announcement)                                                                |
 
-An ordinary day thus makes 3 readings (10:15, 13:15, 16:15), then nothing until the next day. At the first start,
+(EDF may still change a tomorrow read before 16:00: it is read once more at 16:15.) An ordinary day thus makes
+3 readings (10:15, 13:15, 16:15), then nothing until the next day. At the first start,
 one reading goes at once. Two readings are at least 10 minutes apart, restarts included (the time of the
 attempt is written to `/data` before the request).
 
@@ -65,7 +66,12 @@ EDF may revise them twice a year: use those of your bill.
   · 18 kVA 31.14 · 24 kVA 39.14 · 30 kVA 46.47 · 36 kVA 53.88 EUR (6 kVA pre-filled).
 - **Bonus days**: billed as Éco days. The reward EDF pays when you follow its advice is not computed.
 - **A day absent from the calendar** (not announced yet, module stopped): priced as an Éco day, as most days
-  are. As soon as the day reaches the calendar, Gladys recomputes the costs concerned.
+  are. A day read later (the day before at 16:00, or on the day) enters the calendar and Gladys recomputes the
+  costs concerned.
+- **A day missed entirely is never caught up**: EDF only answers for today and tomorrow. If the module or the
+  EDF website is unavailable from 16:00 the day before to the end of the day, that day stays priced as Éco, even
+  if it was a Sobriété day (its peak hours then underpriced by 0.53 EUR/kWh). The status names these days
+  (weekdays of the Sobriété season, public holidays excepted): check them in your EDF customer area.
 - A day runs from midnight to midnight (Paris time). Gladys handles the changes of time.
 
 ## Scenes
@@ -74,7 +80,7 @@ Trigger **"EDF Zen Flex day announced"**: it fires when the module first reads t
 around 16:15), with the filter "Type of tomorrow" (Éco, Sobriété, Bonus; empty: any). Variables: `day_type`
 (`eco`, `sobriete` or `bonus`) and `date` (`YYYY-MM-DD`).
 
-- Once per announced day; again if EDF changes that type before midnight.
+- Once per announced day; again if the 16:15 reading finds that type changed (tomorrow read before 16:00).
 - If Gladys does not take the announcement, it is sent again (after 1, 5, 15 minutes, then every 30 minutes)
   until midnight, then dropped: an announcement is not sent any more once its day has begun.
 - A module started after midnight fires nothing for the current day.
@@ -88,8 +94,9 @@ contract.
 
 The integration screen shows: the type of today and tomorrow, the number of Sobriété (of 20) and Bonus days
 seen by the module this year, the time of the last reading, and what is wrong (EDF unreadable with the reason
-and the time of the next try, calendar refused, announcement not sent, `/data` not writable). The counters only
-see the days read since the installation.
+and the time of the next try, calendar refused, announcement not sent, `/data` not writable), and the days of the
+Sobriété season never read since the installation ("Not read … priced as Éco days", the 5 most recent). The
+counters only see the days read since the installation.
 
 ## What `/data` keeps
 

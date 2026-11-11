@@ -37,7 +37,7 @@ test('first start: one reading at once, with the module User-Agent and the Paris
   assert.doesNotMatch(USER_AGENT, /Mozilla|Chrome|Safari|okhttp|Dalvik|CFNetwork|EDF/);
   assert.equal(request.init.headers.Accept, 'application/json');
   assert.equal(request.init.headers.Cookie, undefined);
-  assert.equal(request.init.redirect, 'error');
+  assert.equal(request.init.redirect, 'manual');
   assert.ok(request.init.signal, 'a timeout');
   assert.deepEqual(calendarOf(gladys), { '2026-11-11': 'eco' });
   assert.deepEqual(announcements(gladys), []);
@@ -99,7 +99,7 @@ test('the announcement goes to the calendar and to the scenes once', async (t) =
   assert.deepEqual(second.edf.requests, [], 'today and tomorrow known: nothing asked');
 });
 
-test('EDF changes tomorrow before midnight: the calendar follows, the scenes are told again', async (t) => {
+test('EDF changes a day already announced: the calendar follows the next day, the scenes are told of the next one', async (t) => {
   const { app, gladys, edf, wait } = await setup({ edfDays: { '2026-11-12': 'sobriete' } });
   stopAfter(t, app);
   await wait(8 * HOUR); // 17:00, Sobriété announced
@@ -309,7 +309,8 @@ test('a timeout or a network error retries; a redirect is not followed', async (
   edf.answer = () =>
     new Response('', { status: 302, headers: { location: 'https://example.com/' } });
   await wait(15 * MINUTE);
-  assert.match(lastStatus(gladys).message.en, /unexpected HTTP answer/);
+  assert.match(lastStatus(gladys).message.en, /answered with a redirection/);
+  assert.match(lastStatus(gladys).message.fr, /répondu par une redirection/);
   assert.equal(edf.requests.length, 3);
 });
 
@@ -789,4 +790,235 @@ test('a reconnection while a publication runs: the new connection still publishe
   await Promise.all([stopped, restarted]);
   await wait(0);
   assert.deepEqual(calendarOf(gladys), { '2026-11-11': 'eco' });
+});
+
+// --- Review r1 ----------------------------------------------------------------
+
+test('dateRelevant without leading zeros on a day and a month 1-9 (the reference form)', async (t) => {
+  const { app, gladys, edf } = await setup({ now: Date.parse('2027-01-05T08:00:00Z') });
+  stopAfter(t, app);
+  assert.equal(edf.requests[0].url, `${STATUS_URL}?dateRelevant=2027-1-5`);
+  assert.equal(edf.requests[0].date, '2027-1-5');
+  assert.deepEqual(calendarOf(gladys), { '2027-01-05': 'eco' }, 'stored under the ISO date');
+});
+
+test('a Sobriété weekday never read is named in the status, never caught up', async (t) => {
+  const store = createMemoryStore();
+  const first = await setup({ store, now: Date.parse('2026-11-10T08:00:00Z') });
+  await first.app.stop();
+  // Stopped from the 10th 09:00 to the 13th 09:00: the 11th (holiday) and the
+  // 12th are missed; only the 12th could have been a Sobriété day.
+  const second = await setup({
+    store,
+    now: Date.parse('2026-11-13T08:00:00Z'),
+    edfDays: { '2026-11-12': 'sobriete' },
+  });
+  t.after(() => second.app.stop());
+  await second.wait(8 * HOUR);
+  const { fr, en } = lastStatus(second.gladys).message;
+  assert.match(fr, /Non lu\(s\) .* : 12\/11, compté\(s\) comme jours Éco/);
+  assert.match(en, /Not read .*: 12\/11, priced as Éco days/);
+  assert.doesNotMatch(fr, /11\/11, compté/);
+  assert.equal(calendarOf(second.gladys)['2026-11-12'], undefined, 'never made up nor caught up');
+  assert.ok(
+    second.edf.requests.every((r) => r.date === '2026-11-13'),
+    'no past date asked',
+  );
+});
+
+test('the missed days: a weekend, a holiday or the summer are not named; at most 5 shown', async (t) => {
+  const store = createMemoryStore({
+    attemptAt: Date.parse('2026-12-10T08:00:00Z') - HOUR,
+    checkedAt: Date.parse('2026-12-10T08:00:00Z') - HOUR,
+    since: '2026-11-27',
+    days: [{ date: '2026-12-10', type: 'eco' }],
+  });
+  const { app, gladys } = await setup({ store, now: Date.parse('2026-12-10T08:00:00Z') });
+  stopAfter(t, app);
+  // 27/11 to 09/12: weekdays 27/11, 30/11, 1-4/12, 7-9/12 = 9 days.
+  assert.equal(app.missedDays('2026-12-10').length, 9);
+  assert.match(lastStatus(gladys).message.fr, /: 09\/12, 08\/12, 07\/12, 04\/12, 03\/12 \(\+4\)/);
+  app.since = '2026-07-01';
+  assert.ok(app.missedDays('2026-08-31').length === 0, 'no Sobriété day in summer');
+  assert.ok(!app.missedDays('2027-01-04').includes('2027-01-01'), 'a holiday');
+  assert.ok(!app.missedDays('2027-01-04').includes('2026-12-25'), 'Christmas');
+  assert.ok(!app.missedDays('2027-01-04').includes('2027-01-02'), 'a Saturday');
+});
+
+test('a type of tomorrow read before 16:00 is read once more at 16:15 (EDF may change it)', async (t) => {
+  const { app, gladys, edf, wait } = await setup({ start: false });
+  stopAfter(t, app);
+  edf.announceAt = 10 * 60;
+  await app.start();
+  await wait(HOUR + 16 * MINUTE); // 10:16: tomorrow read as eco
+  assert.deepEqual(announcements(gladys), [{ day_type: 'eco', date: '2026-11-12' }]);
+  edf.days['2026-11-12'] = 'sobriete';
+  await wait(7 * HOUR); // 17:16
+  assert.deepEqual(requestTimes(edf), ['2026-11-11 09:00', '2026-11-11 10:15', '2026-11-11 16:15']);
+  assert.equal(calendarOf(gladys)['2026-11-12'], 'sobriete');
+  assert.deepEqual(announcements(gladys).at(-1), { day_type: 'sobriete', date: '2026-11-12' });
+  await wait(16 * HOUR);
+  assert.equal(requestTimes(edf).filter((r) => r.startsWith('2026-11-11')).length, 3);
+});
+
+/** A store whose writes take `ms` on the virtual clock. */
+function slowStore(store, clock, ms) {
+  const save = store.save.bind(store);
+  store.save = (data) =>
+    new Promise((resolve, reject) => {
+      clock.timers.setTimeout(() => save(data).then(resolve, reject), ms);
+    });
+  return store;
+}
+
+test('/data writing in 12 s: nothing lost, no second announcement after a crash', async (t) => {
+  const store = createMemoryStore();
+  const first = await setup({ store, start: false, edfDays: { '2026-11-12': 'sobriete' } });
+  slowStore(store, first.clock, 12 * SECOND);
+  await first.app.start();
+  await first.wait(8 * HOUR); // 17:00
+  assert.deepEqual(announcements(first.gladys).length, 1);
+  assert.deepEqual(store.data.announced, { date: '2026-11-12', type: 'sobriete' });
+  assert.ok(store.data.days.some((d) => d.date === '2026-11-12'));
+  assert.doesNotMatch(lastStatus(first.gladys).message.fr, /inscriptible/);
+  // A crash (no stop) and a restart at 17:01: nothing asked, nothing fired again.
+  first.app.running = false;
+  first.app.clearTimers();
+  const second = await setup({
+    store: createMemoryStore(store.data),
+    now: NOW + 8 * HOUR + MINUTE,
+  });
+  t.after(() => second.app.stop());
+  await second.wait(HOUR);
+  assert.deepEqual(second.edf.requests, []);
+  assert.deepEqual(announcements(second.gladys), []);
+});
+
+test('a clean stop writes the state', async (t) => {
+  const store = createMemoryStore();
+  const { app } = await setup({ store });
+  stopAfter(t, app);
+  const saves = store.saves;
+  app.meta.checkedAt = NOW + 1;
+  await app.stop();
+  assert.equal(store.saves, saves + 1);
+  assert.equal(store.data.checkedAt, NOW + 1);
+});
+
+test('a success after failures goes back to the slots (3 readings a day)', async (t) => {
+  const { app, edf, wait } = await setup({ start: false });
+  stopAfter(t, app);
+  edf.down = true;
+  await app.start();
+  await wait(30 * MINUTE); // 09:00, 09:10, 09:25 failed
+  edf.down = false;
+  await wait(DAY + 8 * HOUR);
+  const day2 = requestTimes(edf).filter((r) => r.startsWith('2026-11-12'));
+  assert.deepEqual(day2, ['2026-11-12 10:15', '2026-11-12 13:15', '2026-11-12 16:15']);
+});
+
+test('/data not writable: the first request of a process waits 10 minutes after its start', async (t) => {
+  const store = createMemoryStore();
+  store.failSave = true;
+  const { app, edf, wait } = await setup({ store, start: false });
+  stopAfter(t, app);
+  await app.start();
+  await wait(10 * MINUTE - SECOND);
+  assert.equal(edf.requests.length, 0);
+  await wait(2 * SECOND);
+  assert.equal(edf.requests.length, 1);
+});
+
+test('a reconnection does not send old days again (the core may have purged them)', async (t) => {
+  const store = createMemoryStore({
+    attemptAt: NOW - HOUR,
+    days: [
+      { date: '2026-11-03', type: 'sobriete' },
+      { date: '2026-11-11', type: 'eco' },
+    ],
+    published: [
+      { date: '2026-11-03', type: 'sobriete' },
+      { date: '2026-11-11', type: 'eco' },
+    ],
+  });
+  const { app, gladys, wait } = await setup({
+    store,
+    energyCalendars: { [CALENDAR_KEY]: [{ starts_at: '2026-11-11T00:00:00.000Z', value: 'eco' }] },
+  });
+  stopAfter(t, app);
+  await wait(MINUTE);
+  assert.deepEqual(gladys.fake.publishedEnergyCalendars, []);
+});
+
+test('an announcement changed while the older one is sent: the newer one still goes', async (t) => {
+  const { app, gladys } = await setup({ start: false });
+  stopAfter(t, app);
+  app.running = true;
+  app.loaded = true;
+  const gen = app.generation;
+  const sent = [];
+  gladys.publishSceneEvent = async (key, data) => {
+    sent.push(data);
+    if (sent.length === 1) app.pendingAnnounce = { date: '2026-11-12', type: 'sobriete' };
+  };
+  app.pendingAnnounce = { date: '2026-11-12', type: 'eco' };
+  await app.sync(gen);
+  assert.deepEqual(app.pendingAnnounce, { date: '2026-11-12', type: 'sobriete' });
+  await app.sync(gen);
+  assert.deepEqual(
+    sent.map((d) => d.day_type),
+    ['eco', 'sobriete'],
+  );
+});
+
+test('/data not writable: a reconnection 3 minutes after the start still waits the 10 minutes', async (t) => {
+  const store = createMemoryStore();
+  store.failSave = true;
+  const { app, edf, wait } = await setup({ store, start: false });
+  stopAfter(t, app);
+  await app.start();
+  await wait(3 * MINUTE);
+  await app.stop();
+  await app.start();
+  await wait(6 * MINUTE);
+  assert.equal(edf.requests.length, 0);
+  await wait(2 * MINUTE);
+  assert.equal(edf.requests.length, 1);
+});
+
+test('missed days counted from the first reading of the process, no restart needed', async (t) => {
+  const { app, gladys, edf, wait } = await setup({ now: Date.parse('2026-11-10T08:00:00Z') });
+  stopAfter(t, app);
+  await wait(6 * HOUR + 30 * MINUTE); // 15:30 on the 10th, the 11th unknown
+  edf.down = true;
+  await wait(2 * DAY + 17 * HOUR + 30 * MINUTE); // until 09:00 on the 13th
+  edf.down = false;
+  await wait(8 * HOUR);
+  assert.match(lastStatus(gladys).message.fr, /Non lu\(s\) .* : 12\/11/);
+});
+
+test('saves asked during a slow write: the last state is written after it', async (t) => {
+  const store = createMemoryStore();
+  const { app, clock, wait } = await setup({ store, start: false });
+  stopAfter(t, app);
+  slowStore(store, clock, 4 * SECOND);
+  app.meta.checkedAt = 1;
+  const first = app.save();
+  app.meta.checkedAt = 2;
+  const second = app.save();
+  app.meta.checkedAt = 3;
+  const third = app.save();
+  await wait(20 * SECOND);
+  assert.deepEqual(await Promise.all([first, second, third]), [true, true, true]);
+  assert.equal(store.data.checkedAt, 3);
+});
+
+test('Easter Monday in the season is a holiday, not a missed day', async (t) => {
+  const { app } = await setup({ start: false });
+  stopAfter(t, app);
+  app.since = '2027-03-22';
+  const missed = app.missedDays('2027-04-01');
+  assert.ok(!missed.includes('2027-03-29'), 'Easter Monday 2027');
+  assert.ok(missed.includes('2027-03-30'));
+  assert.ok(missed.includes('2027-03-26'));
 });

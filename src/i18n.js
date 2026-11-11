@@ -4,6 +4,7 @@
 // those of Paris.
 // -----------------------------------------------------------------------------
 
+import { MAX_MISSED_SHOWN } from './constants.js';
 import { parisTime } from './time.js';
 
 const LANGS = ['en', 'fr'];
@@ -28,6 +29,10 @@ const reasons = {
   network: { en: 'network error', fr: 'erreur réseau' },
   timeout: { en: 'no answer in time', fr: 'pas de réponse à temps' },
   too_large: { en: 'answer too large', fr: 'réponse trop grande' },
+  redirect: {
+    en: 'the website answered with a redirection',
+    fr: 'le site a répondu par une redirection',
+  },
   invalid: {
     en: 'answer of an unexpected form (EDF may have changed it)',
     fr: 'réponse de forme inattendue (EDF a pu la changer)',
@@ -71,6 +76,7 @@ export const T = {
     calendar,
     dataError,
     sceneError,
+    missed = [],
   }) {
     const out = {};
     for (const lang of LANGS) {
@@ -111,6 +117,16 @@ export const T = {
           lang === 'en'
             ? `Last EDF reading: ${parisTime(checkedAt)}${error ? ' (older data)' : ''}.`
             : `Dernière lecture EDF : ${parisTime(checkedAt)}${error ? ' (données plus anciennes)' : ''}.`,
+        );
+      }
+      if (missed.length > 0) {
+        const shown = missed.slice(0, MAX_MISSED_SHOWN).map(short).join(', ');
+        const more =
+          missed.length > MAX_MISSED_SHOWN ? ` (+${missed.length - MAX_MISSED_SHOWN})` : '';
+        parts.push(
+          lang === 'en'
+            ? `Not read (EDF answers only for today and tomorrow): ${shown}${more}, priced as Éco days; check them in your EDF customer area.`
+            : `Non lu(s) (EDF ne répond que pour aujourd’hui et demain) : ${shown}${more}, compté(s) comme jours Éco ; à vérifier dans votre espace client EDF.`,
         );
       }
       if (calendar === 'refused') {

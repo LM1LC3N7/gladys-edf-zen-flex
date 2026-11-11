@@ -29,11 +29,17 @@ Gladys ⇄ SDK ⇄ src/app.js (App)    schedule, /data, calendar, scene trigger,
   `NON_DETERMINE` (not announced). Any other form is refused as a whole: the status says "unexpected form",
   nothing is published, **no day is ever made up**. The format may change at any time.
 - **Schedule** (Paris): 00:15 when today is unknown; 10:15, 13:15, 16:15, 17:15, 19:15, 22:15 when today or
-  tomorrow is unknown (EDF announces by 16:00). A normal day: 3 requests. A slot missed while stopped is caught
+  tomorrow is unknown (EDF announces by 16:00), and 16:15 once more when tomorrow was read before 16:00. A normal
+  day: 3 requests. A slot missed while stopped is caught
   up at once. Two requests are at least 10 minutes apart (the attempt is written to `/data` first; with `/data`
   not writable, the first request of a process waits 10 minutes; within a process, a monotonic clock). No timer
   waits more than an hour, so a wall clock change is seen. Errors: 5 (raised to 10), 15, 30, 60 minutes, then
-  every 2 hours; 429: its Retry-After within [1 min, 6 h] (30 min when absent), kept in `/data`; 403: 6 hours.
+  every 2 hours; 429: its Retry-After within [1 min, 6 h] (30 min when absent), kept in `/data`; 403: 6 hours;
+  3xx: an error, never followed. `dateRelevant` is sent without leading zeros (`2027-1-5`), the form of the
+  reference (`api.py`); the script of the EDF Zen Flex page does not call the endpoint, so it gives no other form.
+- **Missed days**: the endpoint answers for today and tomorrow only, so a day missed entirely is never caught up
+  (priced as Éco by the template); the status names the weekdays of the Sobriété season (public holidays
+  excepted) never read since the first reading, a year back at most.
 - **Calendar** `zen-flex` (daily, Europe/Paris, values `eco`, `sobriete`, `bonus`): every day read is sent once
   Gladys accepted it (kept in `/data`), from 5 years back to tomorrow; yesterday, today and tomorrow are read
   back at each connection (a restored database gets them again; older days are left alone, since the core
@@ -42,8 +48,8 @@ Gladys ⇄ SDK ⇄ src/app.js (App)    schedule, /data, calendar, scene trigger,
 - **Template** `edf-zen-flex` (`rules`, version `2026-09-15`): Sobriété peak, Sobriété off-peak, Éco peak, then
   Éco off-peak as fallback; peak hours an input (08:00-13:00, 18:00-20:00); four prices and the subscription as
   inputs, pre-filled from the EDF grid of 2026-09-15. A Bonus day and a day absent from the calendar price as Éco.
-- **Scene trigger** `day_announced` (`day_type`, `date`): fired when tomorrow's type is first read, again if it
-  changes before midnight, retried until midnight, never once the day began; deduplicated in `/data`.
+- **Scene trigger** `day_announced` (`day_type`, `date`): fired when tomorrow's type is first read, again if the
+  16:15 reading finds it changed, retried until midnight, never once the day began; deduplicated in `/data`.
 - **Status**: today, tomorrow, the Sobriété and Bonus days seen this year, the last reading, what failed;
   published in the background, each state once.
 
