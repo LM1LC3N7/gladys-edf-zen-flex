@@ -10,6 +10,8 @@ the notes of the version's GitHub Release.
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-11-11
+
 ### Added
 
 - The type of each EDF Zen Flex day (Éco, Sobriété, Bonus), read from the public
@@ -26,3 +28,6 @@ the notes of the version's GitHub Release.
   day), never closer than 10 minutes, restarts included; pauses on 429 and 403.
 - The status names the days of the Sobriété season never read (priced as Éco
   days, never caught up: EDF answers for today and tomorrow only).
+
+[Unreleased]: https://github.com/LM1LC3N7/gladys-edf-zen-flex/compare/v0.1.1...HEAD
+[0.1.1]: https://github.com/LM1LC3N7/gladys-edf-zen-flex/releases/tag/v0.1.1

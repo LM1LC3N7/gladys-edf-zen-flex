@@ -1,6 +1,6 @@
 {
   "name": "gladys-edf-zen-flex",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": true,
   "description": "EDF Zen Flex (Zen Week-End, Flex option) for Gladys Assistant: the Éco, Sobriété and Bonus days announced the day before, fed to a tariff calendar, and the contract template priced by the Gladys rule engine. Unofficial.",
   "type": "module",
