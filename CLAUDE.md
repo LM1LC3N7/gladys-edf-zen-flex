@@ -5,7 +5,10 @@ contributors.
 
 ## What this is
 
-A Gladys Assistant **external integration**: a Node.js service (Node 22+, ESM,
+A Gladys Assistant **external integration** (`type: "provider"`) for the
+French EDF Zen Flex offer: it reads the Éco / Sobriété / Bonus day types from a
+public, undocumented endpoint of the EDF website, feeds the `zen-flex` tariff
+calendar, offers a `rules` contract template and a scene trigger. A Node.js service (Node 22+, ESM,
 no build step) that runs in its own sandboxed Docker container and talks to
 Gladys through
 [`@gladysassistant/integration-sdk`](https://github.com/GladysAssistant/integration-sdk-js),
@@ -32,17 +35,25 @@ pushing.
 
 ```
 index.js                          SDK wiring only: handlers registered before connect()
-src/devices/index.js              registry of the device blueprints + dispatch helpers
-src/devices/<type>.js             one device type per file (buildDevice, onPoll, onSetValue...)
-src/scenes.js                     scene action handlers (manifest `scene_actions`)
-src/widgets.js                    dashboard widget handlers (manifest `widgets`)
-src/config.js                     DEFAULT_CONFIG (mirrors the manifest defaults) + normalization
-src/weather.js                    example driver (Open-Meteo)
-gladys-assistant-integration.json manifest: name, config_schema, actions, image...
+src/app.js                        schedule, /data, calendar publication, scene trigger, status
+src/http.js                       the only network access (module User-Agent, timeout, bounded body, no redirect)
+src/edf.js                        the EDF answer checked: known codes or refused as a whole (pure)
+src/schedule.js                   the next reading time, Paris slots (pure)
+src/time.js                       Paris dates and wall times (pure)
+src/store.js                      /data state file (missing vs unreadable)
+src/i18n.js                       status texts (en, fr)
+src/constants.js                  manifest keys, URL, codes, bounds, schedule
+gladys-assistant-integration.json manifest: provider, energy_contracts (calendar + rules template), scene_triggers
 docs/en.md, docs/fr.md            user documentation, re-hosted by Gladys (mandatory)
 test/                             node --test, against the SDK's fake Gladys (integration-sdk/testing)
-.github/scripts/release.mjs       release helpers (manifest bump, changelog), tested in test/
+scripts/mutants.mjs, mutants.json mutation check of the guards (not in the image, not in CI)
+scripts/cover.mjs                 generates cover.png
 ```
+
+The EDF endpoint is undocumented: keep the module's own User-Agent (never a
+browser's nor the app's), never get around a 403, refuse any answer of an
+unexpected form as a whole and never make a day up. Never poll faster than
+the schedule (`src/schedule.js`).
 
 ## Rules
 

@@ -1,177 +1,291 @@
 {
   "manifest_version": 1,
-  "type": "device",
-  "name": "Demo Devices Template",
+  "type": "provider",
+  "name": "EDF Zen Flex",
   "description": {
-    "en": "Starter template showing sensors, a switch, a dimmable light and a smart plug.",
-    "fr": "Template de démarrage : capteurs, interrupteur, lampe variable et prise connectée."
+    "en": "Unofficial: EDF Zen Flex Sobriété and Bonus days, and the contract priced right in Gladys.",
+    "fr": "Non officiel : jours Sobriété et Bonus EDF Zen Flex, et le contrat au bon prix dans Gladys."
   },
-  "version": "1.0.0",
-  "docker_image": "ghcr.io/gladysassistant/integration-template-js:1.0.0",
-  "gladys_version": ">=5.1.0",
-  "cover_image": "https://raw.githubusercontent.com/GladysAssistant/integration-template-js/master/cover.png",
-  "categories": ["lighting", "security", "environment"],
-  "transports": ["local", "cloud"],
+  "version": "0.1.0",
+  "docker_image": "ghcr.io/lm1lc3n7/gladys-edf-zen-flex:0.1.0",
+  "gladys_version": ">=5.2.0",
+  "cover_image": "https://raw.githubusercontent.com/LM1LC3N7/gladys-edf-zen-flex/main/cover.png",
+  "categories": ["energy"],
+  "transports": ["cloud"],
   "config_schema": [
     {
       "key": "intro",
       "type": "section",
-      "label": { "en": "Getting started", "fr": "Pour commencer" },
+      "label": {
+        "en": "How it works",
+        "fr": "Fonctionnement"
+      },
       "description": {
-        "en": "The demo weather station reads real data from the free Open-Meteo API: pick the coordinates to observe. No account, no API key.",
-        "fr": "La station météo de démonstration lit de vraies données via l'API gratuite Open-Meteo : choisissez les coordonnées à observer. Pas de compte, pas de clé d'API."
+        "en": "Nothing to set here. Unofficial: this integration reads the type of today and tomorrow (Éco, Sobriété, Bonus) from a public page of the EDF website, without any account, a few times a day; EDF does not document it and may change it, the status then says so and no day is made up. Open Integrations → Energy monitoring → Contracts, create a contract from the EDF Zen Flex template and check its prices. Scenes: the trigger \"EDF Zen Flex day announced\".",
+        "fr": "Rien à régler ici. Non officiel : cette intégration lit le type du jour et du lendemain (Éco, Sobriété, Bonus) sur une page publique du site EDF, sans compte, quelques fois par jour ; EDF ne la documente pas et peut la changer, le statut le dit alors et aucun jour n’est inventé. Ouvrez Intégrations → Suivi de l’énergie → Contrats, créez un contrat à partir du modèle EDF Zen Flex et vérifiez ses prix. Scènes : le déclencheur « Jour EDF Zen Flex annoncé »."
       },
       "links": [
         {
-          "url": "https://open-meteo.com/en/docs",
-          "label": { "en": "Open-Meteo documentation", "fr": "Documentation Open-Meteo" }
-        }
-      ]
-    },
-    {
-      "key": "latitude",
-      "type": "number",
-      "label": { "en": "Latitude", "fr": "Latitude" },
-      "description": {
-        "en": "Latitude used for the demo weather sensor.",
-        "fr": "Latitude utilisée par le capteur météo de démonstration."
-      },
-      "placeholder": { "en": "e.g. 48.8566", "fr": "ex. 48.8566" },
-      "required": true,
-      "default": 48.8566,
-      "min": -90,
-      "max": 90
-    },
-    {
-      "key": "longitude",
-      "type": "number",
-      "label": { "en": "Longitude", "fr": "Longitude" },
-      "description": {
-        "en": "Longitude used for the demo weather sensor.",
-        "fr": "Longitude utilisée par le capteur météo de démonstration."
-      },
-      "placeholder": { "en": "e.g. 2.3522", "fr": "ex. 2.3522" },
-      "required": true,
-      "default": 2.3522,
-      "min": -180,
-      "max": 180
-    },
-    {
-      "key": "unit",
-      "type": "select",
-      "label": { "en": "Temperature unit", "fr": "Unité de température" },
-      "required": false,
-      "default": "celsius",
-      "options": [
-        { "value": "celsius", "label": { "en": "Celsius", "fr": "Celsius" } },
-        { "value": "fahrenheit", "label": { "en": "Fahrenheit", "fr": "Fahrenheit" } }
-      ]
-    },
-    {
-      "key": "poll_frequency",
-      "type": "number",
-      "label": { "en": "Refresh interval (s)", "fr": "Intervalle de rafraîchissement (s)" },
-      "description": {
-        "en": "How often sensors are polled, in seconds (one minute minimum).",
-        "fr": "Fréquence d'interrogation des capteurs, en secondes (une minute minimum)."
-      },
-      "required": false,
-      "default": 300,
-      "min": 60,
-      "max": 3600
-    }
-  ],
-  "actions": [
-    {
-      "key": "test_weather",
-      "label": { "en": "Test the weather provider", "fr": "Tester le fournisseur météo" },
-      "timeout_seconds": 30
-    },
-    {
-      "key": "identify",
-      "label": { "en": "Identify a device", "fr": "Identifier un appareil" },
-      "fields": [
+          "url": "https://github.com/LM1LC3N7/gladys-edf-zen-flex#readme",
+          "label": {
+            "en": "Documentation",
+            "fr": "Documentation"
+          }
+        },
         {
-          "key": "device",
-          "type": "select",
-          "source": "devices",
-          "label": { "en": "Device", "fr": "Appareil" },
-          "required": true
+          "url": "https://particulier.edf.fr/content/dam/2-Actifs/Documents/Offres/grille-prix-zen-week-end.pdf",
+          "label": {
+            "en": "EDF price grid (PDF)",
+            "fr": "Grille de prix EDF (PDF)"
+          }
+        },
+        {
+          "url": "https://particulier.edf.fr/fr/accueil/electricite-gaz/zen-flex.html",
+          "label": {
+            "en": "The Zen Flex offer on edf.fr",
+            "fr": "L’offre Zen Flex sur edf.fr"
+          }
         }
       ]
     }
   ],
   "scene_triggers": [
     {
-      "key": "motion_detected",
-      "label": { "en": "Motion detected", "fr": "Mouvement détecté" },
+      "key": "day_announced",
+      "label": {
+        "en": "EDF Zen Flex day announced",
+        "fr": "Jour EDF Zen Flex annoncé"
+      },
       "description": {
-        "en": "A demo motion sensor saw a person or an animal move.",
-        "fr": "Un détecteur de démonstration a vu bouger une personne ou un animal."
+        "en": "EDF announced the type of tomorrow (by 16:00 at the latest). Once per day, when the module first reads it; again if EDF changes it before midnight.",
+        "fr": "EDF a annoncé le type du lendemain (au plus tard à 16 h). Une fois par jour, quand le module le lit ; de nouveau si EDF le change avant minuit."
       },
       "fields": [
         {
-          "key": "device",
-          "type": "select",
-          "source": "devices",
-          "label": { "en": "Sensor", "fr": "Détecteur" }
-        },
-        {
-          "key": "target",
+          "key": "day_type",
           "type": "multi_select",
-          "label": { "en": "What moved", "fr": "Ce qui a bougé" },
+          "label": {
+            "en": "Type of tomorrow (empty: any)",
+            "fr": "Type du lendemain (vide : tous)"
+          },
           "options": [
-            { "value": "person", "label": { "en": "Person", "fr": "Personne" } },
-            { "value": "animal", "label": { "en": "Animal", "fr": "Animal" } }
+            {
+              "value": "eco",
+              "label": {
+                "en": "Éco day",
+                "fr": "Jour Éco"
+              }
+            },
+            {
+              "value": "sobriete",
+              "label": {
+                "en": "Sobriété day",
+                "fr": "Jour Sobriété"
+              }
+            },
+            {
+              "value": "bonus",
+              "label": {
+                "en": "Bonus day",
+                "fr": "Jour Bonus"
+              }
+            }
           ]
         }
       ],
       "variables": [
         {
-          "key": "target",
+          "key": "day_type",
           "type": "string",
-          "label": { "en": "What moved", "fr": "Ce qui a bougé" }
+          "label": {
+            "en": "Type of tomorrow (key)",
+            "fr": "Type du lendemain (clé)"
+          },
+          "description": {
+            "en": "eco, sobriete or bonus.",
+            "fr": "eco, sobriete ou bonus."
+          }
+        },
+        {
+          "key": "date",
+          "type": "string",
+          "label": {
+            "en": "Date of tomorrow (YYYY-MM-DD)",
+            "fr": "Date du lendemain (AAAA-MM-JJ)"
+          }
         }
       ]
     }
   ],
-  "scene_actions": [
-    {
-      "key": "identify_device",
-      "label": { "en": "Identify a device", "fr": "Identifier un appareil" },
-      "description": {
-        "en": "Make a device signal itself (the demo light blinks).",
-        "fr": "Fait se signaler un appareil (la lampe de démonstration clignote)."
-      },
-      "timeout_seconds": 15,
-      "fields": [
-        {
-          "key": "device",
-          "type": "select",
-          "source": "devices",
-          "label": { "en": "Device", "fr": "Appareil" },
-          "required": true
+  "energy_contracts": {
+    "templates": [
+      {
+        "key": "edf-zen-flex",
+        "name": {
+          "en": "EDF Zen Flex (Zen Week-End, Flex option)",
+          "fr": "EDF Zen Flex (Zen Week-End, option Flex)"
+        },
+        "description": {
+          "en": "Peak hours 08:00-13:00 and 18:00-20:00 every day; up to 20 Sobriété days a year with expensive peak hours. Bonus days are priced as Éco days (the EDF reward is not computed). A day not announced is priced as an Éco day.",
+          "fr": "Heures pleines 8 h-13 h et 18 h-20 h tous les jours ; jusqu’à 20 jours Sobriété par an aux heures pleines chères. Les jours Bonus sont comptés comme des jours Éco (la récompense EDF n’est pas calculée). Un jour non annoncé est compté comme un jour Éco."
+        },
+        "country": "FR",
+        "currency": "EUR",
+        "timezone": "Europe/Paris",
+        "pricing_mode": "rules",
+        "version": "2026-09-15",
+        "calendars": ["zen-flex"],
+        "inputs": [
+          {
+            "key": "peak_slots",
+            "type": "time_intervals",
+            "label": {
+              "en": "Peak hours (every day)",
+              "fr": "Heures pleines (tous les jours)"
+            },
+            "description": {
+              "en": "08:00-13:00 and 18:00-20:00 in the EDF terms; the rest of the day is off-peak. Change them only if EDF announces new hours.",
+              "fr": "8 h-13 h et 18 h-20 h selon les conditions EDF ; le reste de la journée est en heures creuses. À changer seulement si EDF annonce d’autres horaires."
+            },
+            "default": [
+              ["08:00", "13:00"],
+              ["18:00", "20:00"]
+            ],
+            "required": true
+          },
+          {
+            "key": "eco_off_peak",
+            "type": "number",
+            "unit": "EUR/kWh",
+            "label": {
+              "en": "Éco day, off-peak hours",
+              "fr": "Jour Éco, heures creuses"
+            },
+            "description": {
+              "en": "EDF grid price including taxes, applicable from 2026-09-15 to new contracts: 0.1595 EUR/kWh. Correct it if your bill shows another one.",
+              "fr": "Prix TTC de la grille EDF applicable au 15/09/2026 aux nouvelles souscriptions : 0,1595 €/kWh. Corrigez-le si votre facture en montre un autre."
+            },
+            "default": 0.1595,
+            "required": true
+          },
+          {
+            "key": "eco_peak",
+            "type": "number",
+            "unit": "EUR/kWh",
+            "label": {
+              "en": "Éco day, peak hours",
+              "fr": "Jour Éco, heures pleines"
+            },
+            "description": {
+              "en": "EDF grid price including taxes, applicable from 2026-09-15 to new contracts: 0.2142 EUR/kWh. Correct it if your bill shows another one.",
+              "fr": "Prix TTC de la grille EDF applicable au 15/09/2026 aux nouvelles souscriptions : 0,2142 €/kWh. Corrigez-le si votre facture en montre un autre."
+            },
+            "default": 0.2142,
+            "required": true
+          },
+          {
+            "key": "sobriete_off_peak",
+            "type": "number",
+            "unit": "EUR/kWh",
+            "label": {
+              "en": "Sobriété day, off-peak hours",
+              "fr": "Jour Sobriété, heures creuses"
+            },
+            "description": {
+              "en": "EDF grid price including taxes, applicable from 2026-09-15 to new contracts: 0.2142 EUR/kWh. Correct it if your bill shows another one.",
+              "fr": "Prix TTC de la grille EDF applicable au 15/09/2026 aux nouvelles souscriptions : 0,2142 €/kWh. Corrigez-le si votre facture en montre un autre."
+            },
+            "default": 0.2142,
+            "required": true
+          },
+          {
+            "key": "sobriete_peak",
+            "type": "number",
+            "unit": "EUR/kWh",
+            "label": {
+              "en": "Sobriété day, peak hours",
+              "fr": "Jour Sobriété, heures pleines"
+            },
+            "description": {
+              "en": "EDF grid price including taxes, applicable from 2026-09-15 to new contracts: 0.7467 EUR/kWh. Correct it if your bill shows another one.",
+              "fr": "Prix TTC de la grille EDF applicable au 15/09/2026 aux nouvelles souscriptions : 0,7467 €/kWh. Corrigez-le si votre facture en montre un autre."
+            },
+            "default": 0.7467,
+            "required": true
+          },
+          {
+            "key": "subscription",
+            "type": "number",
+            "unit": "EUR/month",
+            "label": {
+              "en": "Monthly subscription (by subscribed power)",
+              "fr": "Abonnement mensuel (selon la puissance)"
+            },
+            "description": {
+              "en": "Pre-filled for 6 kVA. EDF grid of 2026-09-15 in EUR/month including taxes: 6 kVA 15.86 · 9 kVA 19.88 · 12 kVA 23.76 · 15 kVA 27.40 · 18 kVA 31.14 · 24 kVA 39.14 · 30 kVA 46.47 · 36 kVA 53.88.",
+              "fr": "Pré-rempli pour 6 kVA. Grille EDF du 15/09/2026 en €/mois TTC : 6 kVA 15,86 · 9 kVA 19,88 · 12 kVA 23,76 · 15 kVA 27,40 · 18 kVA 31,14 · 24 kVA 39,14 · 30 kVA 46,47 · 36 kVA 53,88."
+            },
+            "default": 15.86,
+            "required": true
+          }
+        ],
+        "tariff": {
+          "tariff_version": 1,
+          "calendars": ["zen-flex"],
+          "components": [
+            {
+              "key": "energy",
+              "kind": "consumption",
+              "rules": [
+                {
+                  "label": "Sobriété HP",
+                  "when": {
+                    "calendar": {
+                      "zen-flex": "sobriete"
+                    },
+                    "time": "{{input:peak_slots}}"
+                  },
+                  "price": "{{input:sobriete_peak}}"
+                },
+                {
+                  "label": "Sobriété HC",
+                  "when": {
+                    "calendar": {
+                      "zen-flex": "sobriete"
+                    }
+                  },
+                  "price": "{{input:sobriete_off_peak}}"
+                },
+                {
+                  "label": "Éco HP",
+                  "when": {
+                    "time": "{{input:peak_slots}}"
+                  },
+                  "price": "{{input:eco_peak}}"
+                }
+              ],
+              "fallback": {
+                "label": "Éco HC",
+                "price": "{{input:eco_off_peak}}"
+              }
+            },
+            {
+              "key": "subscription",
+              "kind": "fixed",
+              "amount": "{{input:subscription}}",
+              "per": "month"
+            }
+          ]
         }
-      ],
-      "outputs": [
-        {
-          "key": "signalled",
-          "type": "boolean",
-          "label": { "en": "Device signalled", "fr": "Appareil signalé" }
-        }
-      ]
-    }
-  ],
-  "widgets": [
-    {
-      "key": "demo_status",
-      "label": { "en": "Demo status", "fr": "État de la démo" },
-      "description": {
-        "en": "Live temperature and plug power, plug connection and observed location.",
-        "fr": "Température et puissance en direct, connexion de la prise, position observée."
-      },
-      "icon": "activity",
-      "action_timeout_seconds": 15
-    }
-  ]
+      }
+    ],
+    "calendars": [
+      {
+        "key": "zen-flex",
+        "granularity": "day",
+        "timezone": "Europe/Paris",
+        "values": ["eco", "sobriete", "bonus"]
+      }
+    ]
+  }
 }

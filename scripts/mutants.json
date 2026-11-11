@@ -1,0 +1,266 @@
+[
+  {
+    "name": "edf: unknown code accepted",
+    "file": "src/edf.js",
+    "from": "if (!Object.hasOwn(CODES, code)) throw",
+    "to": "if (false) throw"
+  },
+  {
+    "name": "edf: inherited key accepted",
+    "file": "src/edf.js",
+    "from": "if (!Object.hasOwn(json, key)) throw",
+    "to": "if (!(key in json)) throw"
+  },
+  {
+    "name": "edf: a code that is not a text accepted",
+    "file": "src/edf.js",
+    "from": "if (typeof code !== 'string') throw new FormatError(`${key} is not a text`);",
+    "to": ""
+  },
+  {
+    "name": "edf: not announced becomes eco",
+    "file": "src/edf.js",
+    "from": "if (code === UNKNOWN_CODE) return null;",
+    "to": "if (code === UNKNOWN_CODE) return 'eco';"
+  },
+  {
+    "name": "edf: raw code in the error",
+    "file": "src/edf.js",
+    "from": "`unknown ${key} code ${shown(code)}`",
+    "to": "`unknown ${key} code ${code}`"
+  },
+  {
+    "name": "http: a browser User-Agent",
+    "file": "src/http.js",
+    "from": "headers: { 'User-Agent': USER_AGENT, Accept: 'application/json' }",
+    "to": "headers: { 'User-Agent': 'Mozilla/5.0', Accept: 'application/json' }"
+  },
+  {
+    "name": "http: redirects followed",
+    "file": "src/http.js",
+    "from": "redirect: 'error'",
+    "to": "redirect: 'follow'"
+  },
+  {
+    "name": "http: content type not checked",
+    "file": "src/http.js",
+    "from": "if (!/^application\\/json\\b/i.test(type)) {",
+    "to": "if (false) {"
+  },
+  {
+    "name": "http: body not bounded while read",
+    "file": "src/http.js",
+    "from": "    if (size > limit) {\n      await reader.cancel()",
+    "to": "    if (false) {\n      await reader.cancel()"
+  },
+  {
+    "name": "http: declared length not checked",
+    "file": "src/http.js",
+    "from": "if (Number.isFinite(declared) && declared > limit) {",
+    "to": "if (false) {"
+  },
+  {
+    "name": "http: 403 not told apart",
+    "file": "src/http.js",
+    "from": "if (status === 403) {",
+    "to": "if (false) {"
+  },
+  {
+    "name": "http: no timeout",
+    "file": "src/http.js",
+    "from": "signal: AbortSignal.timeout(Math.max(1, timeout)),",
+    "to": ""
+  },
+  {
+    "name": "app: no pause after a 403",
+    "file": "src/app.js",
+    "from": "this.meta.pausedUntil = this.now() + BLOCKED_PAUSE;",
+    "to": ""
+  },
+  {
+    "name": "app: 429 pause not capped",
+    "file": "src/app.js",
+    "from": "Math.min(Math.max(failure.retryAfter ?? PAUSE_DEFAULT, PAUSE_MIN), PAUSE_MAX)",
+    "to": "Math.max(failure.retryAfter ?? PAUSE_DEFAULT, PAUSE_MIN)"
+  },
+  {
+    "name": "app: 429 pause without floor",
+    "file": "src/app.js",
+    "from": "Math.min(Math.max(failure.retryAfter ?? PAUSE_DEFAULT, PAUSE_MIN), PAUSE_MAX)",
+    "to": "Math.min(failure.retryAfter ?? PAUSE_DEFAULT, PAUSE_MAX)"
+  },
+  {
+    "name": "app: attempt not dated before the request",
+    "file": "src/app.js",
+    "from": "    this.meta.attemptAt = t;\n    const saved = await this.save();",
+    "to": "    const saved = await this.save();"
+  },
+  {
+    "name": "app: restart loop guard removed",
+    "file": "src/app.js",
+    "from": "if (!saved && this.lastRequestMono === undefined) {",
+    "to": "if (false) {"
+  },
+  {
+    "name": "app: monotonic gap removed",
+    "file": "src/app.js",
+    "from": "wait = Math.max(wait, MIN_GAP - since);",
+    "to": ""
+  },
+  {
+    "name": "app: a day not announced made up",
+    "file": "src/app.js",
+    "from": "    if (!type) return;\n    const before",
+    "to": "    if (!type) type = 'eco';\n    const before"
+  },
+  {
+    "name": "app: stale announcement sent",
+    "file": "src/app.js",
+    "from": "if (pending && pending.date <= today) {",
+    "to": "if (pending && pending.date < today) {"
+  },
+  {
+    "name": "app: announcement not deduplicated",
+    "file": "src/app.js",
+    "from": "(this.announced?.date !== tomorrow || this.announced?.type !== parsed.tomorrow)",
+    "to": "true"
+  },
+  {
+    "name": "app: days after tomorrow restored",
+    "file": "src/app.js",
+    "from": "if (day && day.date <= tomorrow) into.set(day.date, day.type);",
+    "to": "if (day) into.set(day.date, day.type);"
+  },
+  {
+    "name": "app: pause from /data not bounded",
+    "file": "src/app.js",
+    "from": "data.pausedUntil <= now + Math.max(PAUSE_MAX, BLOCKED_PAUSE)",
+    "to": "true"
+  },
+  {
+    "name": "app: future attempt from /data kept",
+    "file": "src/app.js",
+    "from": "this.meta.attemptAt = pastDate(data.attemptAt, now);",
+    "to": "this.meta.attemptAt = data.attemptAt;"
+  },
+  {
+    "name": "app: calendar 403 taken as a failure",
+    "file": "src/app.js",
+    "from": "        if (err?.status === 403) {\n          this.calendar = 'refused';\n          this.logger.warn('Gladys refused the zen-flex calendar: another integration owns it');\n        } else {",
+    "to": "        if (false) {\n        } else {"
+  },
+  {
+    "name": "app: read back ignored",
+    "file": "src/app.js",
+    "from": "if (date >= from && held.get(date) !== type) this.published.delete(date);",
+    "to": ""
+  },
+  {
+    "name": "app: timers not cut to an hour",
+    "file": "src/app.js",
+    "from": "const cut = Math.min(wait, MAX_TIMER, Math.max(1000, midnight - now));",
+    "to": "const cut = Math.min(wait, Math.max(1000, midnight - now));"
+  },
+  {
+    "name": "app: early wake not decided again",
+    "file": "src/app.js",
+    "from": "if (this.nextDelay().wait > 0) {",
+    "to": "if (false) {"
+  },
+  {
+    "name": "app: Gladys calls not bounded",
+    "file": "src/app.js",
+    "from": "return await Promise.race([job, late]);",
+    "to": "return await job;"
+  },
+  {
+    "name": "app: status publication not bounded",
+    "file": "src/app.js",
+    "from": "if ((await Promise.race([sent.then(() => 'ok'), late])) === 'timeout') {",
+    "to": "if ((await sent.then(() => 'ok')) === 'timeout') {"
+  },
+  {
+    "name": "app: failed sync not retried",
+    "file": "src/app.js",
+    "from": "    if (failed) {\n      this.syncFailures += 1;",
+    "to": "    if (false) {\n      this.syncFailures += 1;"
+  },
+  {
+    "name": "app: /data unreadable not waited for",
+    "file": "src/app.js",
+    "from": "if (result.status === 'unreadable') {",
+    "to": "if (false) {"
+  },
+  {
+    "name": "app: old generation answer used",
+    "file": "src/app.js",
+    "from": "    if (gen !== this.generation) return;\n    if (!failure) {",
+    "to": "    if (!failure) {"
+  },
+  {
+    "name": "app: history not pruned",
+    "file": "src/app.js",
+    "from": "for (const date of map.keys()) if (date < oldest) map.delete(date);",
+    "to": ""
+  },
+  {
+    "name": "app: calendar refused not asked again at a connection",
+    "file": "src/app.js",
+    "from": "if (this.calendar === 'refused') this.calendar = undefined;",
+    "to": ""
+  },
+  {
+    "name": "schedule: tomorrow not looked for",
+    "file": "src/schedule.js",
+    "from": "return minutesOf(slot) >= minutesOf(ANNOUNCE_FROM) && !known(addDays(date, 1));",
+    "to": "return !known(addDays(date, 1));"
+  },
+  {
+    "name": "schedule: every slot read",
+    "file": "src/schedule.js",
+    "from": "if (t > attemptAt && needed(date, slot, known)) {",
+    "to": "if (t > attemptAt) {"
+  },
+  {
+    "name": "schedule: MIN_GAP not kept after a slot",
+    "file": "src/schedule.js",
+    "from": "due = Math.max(due ?? now + MAX_RETRY, attemptAt + MIN_GAP);",
+    "to": "due = due ?? now + MAX_RETRY;"
+  },
+  {
+    "name": "schedule: failures not spaced",
+    "file": "src/schedule.js",
+    "from": "due = attemptAt + Math.max(retryDelay(failures), MIN_GAP);",
+    "to": "due = attemptAt + MIN_GAP;"
+  },
+  {
+    "name": "schedule: pause ignored",
+    "file": "src/schedule.js",
+    "from": "if (pausedUntil !== undefined && pausedUntil > due) due = pausedUntil;",
+    "to": ""
+  },
+  {
+    "name": "time: Paris instant on the wrong offset",
+    "file": "src/time.js",
+    "from": "for (const offset of [2, 1]) {",
+    "to": "for (const offset of [1]) {"
+  },
+  {
+    "name": "app: no wake at Paris midnight",
+    "file": "src/app.js",
+    "from": "const cut = Math.min(wait, MAX_TIMER, Math.max(1000, midnight - now));",
+    "to": "const cut = Math.min(wait, MAX_TIMER);"
+  },
+  {
+    "name": "app: a sync asked by a new connection lost",
+    "file": "src/app.js",
+    "from": "this.sync(this.generation).catch((err) => this.logger.error('Sync failed', err));",
+    "to": "this.sync(gen).catch((err) => this.logger.error('Sync failed', err));"
+  },
+  {
+    "name": "app: status not refreshed on a wake",
+    "file": "src/app.js",
+    "from": "      if (wait > cut) {\n        this.publishStatus();",
+    "to": "      if (wait > cut) {"
+  }
+]

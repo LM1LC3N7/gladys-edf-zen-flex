@@ -1,61 +1,105 @@
-# Demo Devices Template
+# EDF Zen Flex
 
-This is the user documentation of the integration. Gladys re-hosts this file
-and shows a permanent **Documentation** link to it in the Configuration screen
-(in the user's language, with English as the fallback) — it is when
-configuring that the user needs it most. Keep the short onboarding hints in
-the `section` blocks of the manifest `config_schema`; put the long
-step-by-step (screenshots, troubleshooting…) here.
+**Unofficial** integration, not affiliated with EDF. It brings the French EDF Zen Flex electricity offer
+(commercial name: "Zen Week-End – Option Flex") to Gladys:
 
-## What you get
+- the **type of each day** (Éco, Sobriété, Bonus), read the day before from the EDF website, in the `zen-flex`
+  tariff calendar of Gladys;
+- an "EDF Zen Flex" **contract template** that Gladys prices itself from that calendar;
+- a **scene trigger** "EDF Zen Flex day announced", to get the home ready the day before a Sobriété day.
 
-Six demo devices show up after installation: a weather station (real data
-from Open-Meteo), a switch, a dimmable light, a smart plug with power
-metering, a motion sensor and a camera.
+Not tested on a real Gladys installation with a meter under a Zen Flex contract: reading the EDF website was
+checked for real on 11 November 2026, the pricing on the tariff engine of Gladys 5.3.
 
-## Configuration
+## The source: a public page of the EDF website, undocumented
 
-1. Open the **Configuration** tab of the integration.
-2. Set the **latitude** and **longitude** the demo weather station should
-   observe (they default to Paris), and pick your temperature unit.
-   The **refresh interval** sets how often the weather station and the
-   plug's power are read: every 5 minutes by default, every minute at most.
-3. Save: the devices appear in the **Discovery** tab, ready to be added.
+The integration reads the endpoint that the Zen Flex page of the EDF website uses itself
+(`particulier.edf.fr/services/rest/opm/getOPMStatut`): **no account, no login**, with its own User-Agent
+(`gladys-edf-zen-flex/<version>`), never a browser's nor the EDF app's. It gives the type of today and of
+tomorrow, or "not announced yet".
 
-The **Prefer the local connection** toggle drives the demo plug: it reports
-the channel it actually uses as a badge (local or cloud), with an orange dot
-when it runs degraded (local refused, cloud fallback).
+EDF does not document this endpoint and **may change or close it without notice**. Any answer of an unexpected
+form (an unknown code, a missing key, an HTML page…) is refused as a whole: the status shows "EDF cannot be
+read: answer of an unexpected form", nothing is published, and the days already known stay as they are. **No
+day is ever made up**: a day not announced stays unknown.
 
-## Actions
+EDF sees the IP address of your home and the User-Agent of the module; no other data leaves.
 
-- **Test the weather provider** — performs a live request to Open-Meteo and
-  shows the current temperature and humidity under the button.
-- **Identify a device** — pick one of your devices in the list and it will
-  signal itself (the demo light "blinks" in the logs).
+## When the module asks EDF
+
+EDF announces tomorrow by 16:00 at the latest. The module reads at these Paris times, and only when something is
+missing:
+
+| Time                | Read when                                |
+| ------------------- | ---------------------------------------- |
+| 00:15               | the type of today is unknown             |
+| 10:15, 13:15, 16:15 | the type of today or tomorrow is unknown |
+| 17:15, 19:15, 22:15 | the same (late announcement)             |
+
+An ordinary day thus makes 3 readings (10:15, 13:15, 16:15), then nothing until the next day. At the first start,
+one reading goes at once. Two readings are at least 10 minutes apart, restarts included (the time of the
+attempt is written to `/data` before the request).
+
+On a failure: tried again after 5 (raised to 10), 15, 30 and 60 minutes, then every 2 hours. A 429 answer pauses
+for the time its `Retry-After` asks (between 1 minute and 6 hours, 30 minutes without the header); a 403 answer
+(the website refuses the module) pauses 6 hours. The module does not try to get around a refusal.
+
+## The contract
+
+Open **Integrations → Energy monitoring → Contracts**, create a contract from the **EDF Zen Flex** template and
+check its prices. Gladys computes the cost of your consumption with its own tariff engine; the module only feeds
+the calendar.
+
+Pre-filled prices: EDF "Zen Week-End" grid, Flex option, taxes included, **applicable from 15 September 2026 to
+new contracts** ([PDF](https://particulier.edf.fr/content/dam/2-Actifs/Documents/Offres/grille-prix-zen-week-end.pdf)).
+EDF may revise them twice a year: use those of your bill.
+
+|                         | Off-peak hours | Peak hours     |
+| ----------------------- | -------------- | -------------- |
+| Éco day (and Bonus day) | 0.1595 EUR/kWh | 0.2142 EUR/kWh |
+| Sobriété day            | 0.2142 EUR/kWh | 0.7467 EUR/kWh |
+
+- **Peak hours**: 08:00-13:00 and 18:00-20:00, every day (EDF terms); the rest is off-peak. The "Peak hours"
+  field of the contract follows a change of hours announced by EDF.
+- **Subscription** per month, taxes included, by power: 6 kVA 15.86 · 9 kVA 19.88 · 12 kVA 23.76 · 15 kVA 27.40
+  · 18 kVA 31.14 · 24 kVA 39.14 · 30 kVA 46.47 · 36 kVA 53.88 EUR (6 kVA pre-filled).
+- **Bonus days**: billed as Éco days. The reward EDF pays when you follow its advice is not computed.
+- **A day absent from the calendar** (not announced yet, module stopped): priced as an Éco day, as most days
+  are. As soon as the day reaches the calendar, Gladys recomputes the costs concerned.
+- A day runs from midnight to midnight (Paris time). Gladys handles the changes of time.
 
 ## Scenes
 
-The integration adds its own cards to the scene editor (Gladys 5.1 or
-later), under the **Integrations** category:
+Trigger **"EDF Zen Flex day announced"**: it fires when the module first reads the type of tomorrow (usually
+around 16:15), with the filter "Type of tomorrow" (Éco, Sobriété, Bonus; empty: any). Variables: `day_type`
+(`eco`, `sobriete` or `bonus`) and `date` (`YYYY-MM-DD`).
 
-- **Motion detected** (trigger) — starts the scene when a demo motion sensor
-  sees something move. Optionally pick the sensor and what moved (person,
-  animal); left empty, any detection matches. The following actions can
-  read what moved with `{{triggerEvent.data.target}}`.
-- **Identify a device** (action) — makes the chosen device signal itself.
-  It returns whether the device could signal itself, so the following
-  actions can depend on it.
+- Once per announced day; again if EDF changes that type before midnight.
+- If Gladys does not take the announcement, it is sent again (after 1, 5, 15 minutes, then every 30 minutes)
+  until midnight, then dropped: an announcement is not sent any more once its day has begun.
+- A module started after midnight fires nothing for the current day.
+- The advice of a Bonus day (reduce or shift the consumption) is not given by this endpoint: EDF sends it by
+  e-mail or SMS.
 
-## Dashboard
+To act during the peak hours of a Sobriété day, a scene may also use the "current price" condition of the
+contract.
 
-Add the **Demo status** widget to a dashboard: it shows the live
-temperature of the weather station and the power of the office plug, the
-connection the plug currently uses (orange when degraded) and the observed
-location. Its **Identify the light** button makes the demo light signal
-itself.
+## The status
 
-## Troubleshooting
+The integration screen shows: the type of today and tomorrow, the number of Sobriété (of 20) and Bonus days
+seen by the module this year, the time of the last reading, and what is wrong (EDF unreadable with the reason
+and the time of the next try, calendar refused, announcement not sent, `/data` not writable). The counters only
+see the days read since the installation.
 
-The integration logs everything it does: check the integration logs from the
-Gladys UI (or `docker logs` on the host) with `LOG_LEVEL=debug` for the full
-detail.
+## What `/data` keeps
+
+The days read (400 days at most), those Gladys accepted in its calendar, the last announcement sent, the time of
+the last attempt and of the last successful reading, the pause under way. No personal data, no secret. If
+`/data` cannot be read, the module reads it again every 10 seconds without asking EDF; if it cannot be written,
+the days stay in memory and the first reading waits 10 minutes after the start.
+
+## Calendar already provided
+
+The `zen-flex` key belongs to the first installed integration that declares it. If another integration already
+provides it, Gladys refuses this one (the status says so): the template then reads the values of the other
+integration, and the scene trigger still works.
