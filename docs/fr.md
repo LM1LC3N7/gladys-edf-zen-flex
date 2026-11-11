@@ -70,7 +70,7 @@ EDF peut les réviser deux fois par an : reprenez ceux de votre facture.
 - **Jour absent du calendrier** (pas encore annoncé, module arrêté) : compté comme un jour Éco, ce qu’est la
   grande majorité des jours. Un jour lu plus tard (la veille à 16 h, ou le jour même) entre au calendrier et Gladys
   recalcule les coûts concernés.
-- **Un jour manqué en entier n’est jamais rattrapé** : EDF ne répond que pour aujourd’hui et demain. Si le module
+- **Un jour manqué en entier n’est pas rattrapé** : le module ne lit que le jour même et le lendemain. Si le module
   ou le site EDF est indisponible de la veille 16 h à la fin du jour, ce jour reste compté Éco, même s’il était un
   jour Sobriété (heures pleines alors sous-évaluées de 0,53 €/kWh). Le statut nomme ces jours (jours de semaine
   de la période Sobriété, hors fériés) : vérifiez-les dans votre espace client EDF.

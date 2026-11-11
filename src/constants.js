@@ -14,28 +14,32 @@ export const USER_AGENT = `gladys-edf-zen-flex/${VERSION} (+https://github.com/L
 
 /**
  * The public, undocumented endpoint of the EDF website (no account, no
- * login). It answers only for the current day of Paris: the type of today and
- * of tomorrow; another date gets a 503.
+ * login). The module asks only for the current day of Paris: the type of
+ * today and of tomorrow. It never asks for a past date.
  */
 export const STATUS_URL = 'https://particulier.edf.fr/services/rest/opm/getOPMStatut';
 
 /**
- * `dateRelevant` without leading zeros (`2027-1-5`), as the reference sends it
- * (AuroreVgn/edf-zen-flex, api.py: `f"{day.year}-{day.month}-{day.day}"`, the
- * form its users run every day). The script of the EDF Zen Flex page, read on
- * 2026-11-11, does not call this endpoint, so the website gives no other
- * form; a day and a month of two digits read the same both ways (checked for
- * real on 2026-11-11). To confirm on a day 1-9 (TODO.md).
+ * `dateRelevant` as `YYYY-MM-DD`, with leading zeros: the form recorded for
+ * real on this same path, without any other parameter, on a day 1-9
+ * (jarthod/tempo-api, VCR cassettes of 2026-03-10: `dateRelevant=2026-01-08`
+ * -> 200), and the one other public clients send (MyElectricalData, JC144).
+ * Read for real by the module on 2026-11-11. The reference (AuroreVgn) sends
+ * it without zeros; the review r2 saw the server read both.
  */
-export const dateParam = (date) =>
-  date
-    .split('-')
-    .map((part) => String(Number(part)))
-    .join('-');
+export const dateParam = (date) => date;
 export const statusUrl = (date) => `${STATUS_URL}?dateRelevant=${dateParam(date)}`;
 
 /** The day types of the tariff calendar, by EDF code. Any other code is refused. */
-export const CODES = Object.freeze({ RAS: 'eco', ZENF_PM: 'sobriete', ZENF_BONIF: 'bonus' });
+// Two codes are seen for a Bonus day (EDF's "reduce" and "shift" days, which one is which is not
+// known): ZENF_BONIF (the reference) and ZENF_BONUS (jarthod/tempo-api cassette of 2025-10-16,
+// JC144 on summer days, MyElectricalData).
+export const CODES = Object.freeze({
+  RAS: 'eco',
+  ZENF_PM: 'sobriete',
+  ZENF_BONIF: 'bonus',
+  ZENF_BONUS: 'bonus',
+});
 /** The code of a day EDF has not announced yet. */
 export const UNKNOWN_CODE = 'NON_DETERMINE';
 export const DAY_TYPES = Object.freeze(['eco', 'sobriete', 'bonus']);
@@ -102,6 +106,12 @@ export const SYNC_RETRY_STEPS = Object.freeze([60_000, 5 * 60_000, 15 * 60_000, 
 export const STORE_RETRY = 10_000;
 /** A write of /data longer than this counts as failed (the data stays in memory). */
 export const SAVE_TIMEOUT = 10_000;
+/**
+ * The write of /data at a clean stop waits this long at most: Docker kills the
+ * container 10 s after SIGTERM, and the state was already written on the way
+ * (a temporary file then a rename: a cut write never leaves a broken file).
+ */
+export const STOP_SAVE_TIMEOUT = 3_000;
 /** A status publication longer than this is given up (the next one goes on). */
 export const STATUS_TIMEOUT = 10_000;
 /** A call to Gladys (calendar, scene event) longer than this counts as failed. */

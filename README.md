@@ -24,8 +24,8 @@ Gladys ⇄ SDK ⇄ src/app.js (App)    schedule, /data, calendar, scene trigger,
   endpoint the Zen Flex page of the EDF website reads, **undocumented** (use accepted by the maintainer on
   2026-11-10). No account, no cookie kept, the module's own User-Agent
   (`gladys-edf-zen-flex/<version> (+https://github.com/LM1LC3N7/gladys-edf-zen-flex)`), never a browser's nor
-  the app's. It answers only for the current Paris date (another date: 503), with
-  `{"couleurJourJ": …, "couleurJourJ1": …}`: `RAS` (Éco), `ZENF_PM` (Sobriété), `ZENF_BONIF` (Bonus) or
+  the app's, and no other parameter. The module asks only for the current Paris date, and gets
+  `{"couleurJourJ": …, "couleurJourJ1": …}`: `RAS` (Éco), `ZENF_PM` (Sobriété), `ZENF_BONIF` or `ZENF_BONUS` (Bonus) or
   `NON_DETERMINE` (not announced). Any other form is refused as a whole: the status says "unexpected form",
   nothing is published, **no day is ever made up**. The format may change at any time.
 - **Schedule** (Paris): 00:15 when today is unknown; 10:15, 13:15, 16:15, 17:15, 19:15, 22:15 when today or
@@ -35,9 +35,9 @@ Gladys ⇄ SDK ⇄ src/app.js (App)    schedule, /data, calendar, scene trigger,
   not writable, the first request of a process waits 10 minutes; within a process, a monotonic clock). No timer
   waits more than an hour, so a wall clock change is seen. Errors: 5 (raised to 10), 15, 30, 60 minutes, then
   every 2 hours; 429: its Retry-After within [1 min, 6 h] (30 min when absent), kept in `/data`; 403: 6 hours;
-  3xx: an error, never followed. `dateRelevant` is sent without leading zeros (`2027-1-5`), the form of the
-  reference (`api.py`); the script of the EDF Zen Flex page does not call the endpoint, so it gives no other form.
-- **Missed days**: the endpoint answers for today and tomorrow only, so a day missed entirely is never caught up
+  3xx: an error, never followed. `dateRelevant` is `YYYY-MM-DD` with leading zeros, the form recorded
+  for real on this path on a day 1-9 (jarthod/tempo-api cassettes, 2026-01-08).
+- **Missed days**: the module only reads today and tomorrow, so a day missed entirely is not caught up
   (priced as Éco by the template); the status names the weekdays of the Sobriété season (public holidays
   excepted) never read since the first reading, a year back at most.
 - **Calendar** `zen-flex` (daily, Europe/Paris, values `eco`, `sobriete`, `bonus`): every day read is sent once

@@ -53,7 +53,14 @@ scripts/cover.mjs                 generates cover.png
 The EDF endpoint is undocumented: keep the module's own User-Agent (never a
 browser's nor the app's), never get around a 403, refuse any answer of an
 unexpected form as a whole and never make a day up. Never poll faster than
-the schedule (`src/schedule.js`).
+the schedule (`src/schedule.js`). Ask only today's date, `YYYY-MM-DD`, without
+the website's own `urlPlaasmaCommerce` parameter (that would be passing for the
+EDF website).
+
+`stop()` waits for the reading under way (20 s at most), the publication to
+Gladys (15 s at most) and a last write of `/data` (3 s at most): with a slow
+`/data` it may outlast Docker's 10 s before SIGKILL. That is harmless: the
+state is written on the way, through a temporary file and a rename.
 
 ## Rules
 

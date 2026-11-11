@@ -342,10 +342,10 @@
     "to": "const job = write(data);"
   },
   {
-    "name": "constants: dateRelevant with leading zeros",
+    "name": "constants: dateRelevant without leading zeros",
     "file": "src/constants.js",
-    "from": ".map((part) => String(Number(part)))",
-    "to": ".map((part) => part)"
+    "from": "export const dateParam = (date) => date;",
+    "to": "export const dateParam = (date) => date.replace(/-0/g, '-');"
   },
   {
     "name": "schedule: tomorrow read early not read again",
@@ -392,7 +392,7 @@
   {
     "name": "app: no write at a clean stop",
     "file": "src/app.js",
-    "from": "if (this.loaded) await this.save();",
+    "from": "if (this.loaded) await this.save(STOP_SAVE_TIMEOUT);",
     "to": ""
   },
   {
@@ -406,5 +406,17 @@
     "file": "src/time.js",
     "from": "return [1, 39, 50].some",
     "to": "return [39, 50].some"
+  },
+  {
+    "name": "constants: ZENF_BONUS unknown",
+    "file": "src/constants.js",
+    "from": "  ZENF_BONUS: 'bonus',\n",
+    "to": ""
+  },
+  {
+    "name": "app: stop write waits the full save timeout",
+    "file": "src/app.js",
+    "from": "await this.save(STOP_SAVE_TIMEOUT);",
+    "to": "await this.save();"
   }
 ]

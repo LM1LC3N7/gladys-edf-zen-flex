@@ -7,6 +7,17 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { FormatError, parseStatus } from '../src/edf.js';
 
+test('both Bonus codes are a Bonus day', () => {
+  assert.deepEqual(parseStatus({ couleurJourJ: 'ZENF_BONUS', couleurJourJ1: 'ZENF_BONIF' }), {
+    today: 'bonus',
+    tomorrow: 'bonus',
+  });
+  assert.deepEqual(parseStatus({ couleurJourJ: 'RAS', couleurJourJ1: 'ZENF_BONUS' }), {
+    today: 'eco',
+    tomorrow: 'bonus',
+  });
+});
+
 test('the known codes', () => {
   assert.deepEqual(parseStatus({ couleurJourJ: 'RAS', couleurJourJ1: 'ZENF_PM' }), {
     today: 'eco',

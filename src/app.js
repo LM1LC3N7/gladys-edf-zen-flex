@@ -36,6 +36,7 @@ import {
   SAVE_TIMEOUT,
   STATUS_TIMEOUT,
   SOBRIETE_SEASON,
+  STOP_SAVE_TIMEOUT,
   STORE_RETRY,
   SYNC_RETRY_STEPS,
   TRIGGERS,
@@ -187,7 +188,7 @@ export class App {
     await this.checking?.catch(() => {});
     await this.syncing?.catch(() => {});
     // A clean stop writes the state (bounded in time).
-    if (this.loaded) await this.save();
+    if (this.loaded) await this.save(STOP_SAVE_TIMEOUT);
   }
 
   clearTimers() {
@@ -314,13 +315,13 @@ export class App {
    * meanwhile follows it when it ends). Never throws; resolves whether the
    * state of the call is written.
    */
-  async save() {
+  async save(timeout = SAVE_TIMEOUT) {
     this.saveAsked += 1;
     const wanted = this.saveAsked;
     if (!this.writing) this.writing = this.flush();
     let timer;
     const late = new Promise((resolve) => {
-      timer = this.timers.setTimeout(() => resolve('timeout'), SAVE_TIMEOUT);
+      timer = this.timers.setTimeout(() => resolve('timeout'), timeout);
     });
     const done = new Promise((resolve) => this.saveWaiters.add({ wanted, resolve }));
     try {
@@ -749,7 +750,7 @@ export class App {
   /**
    * The days of the Sobriété season since the first reading (a year at most)
    * whose type was never read: priced as Éco days by the template, never
-   * caught up (EDF only answers for today and tomorrow). Most recent first.
+   * caught up (the module only reads today and tomorrow). Most recent first.
    */
   missedDays(today) {
     const missed = [];

@@ -38,6 +38,15 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
+## Other public clients of the endpoint (facts only)
+
+The date form `YYYY-MM-DD` and the second Bonus code `ZENF_BONUS` were checked
+against the public records of other clients of the same endpoint (review r2,
+2026-11-11): [jarthod/tempo-api](https://github.com/jarthod/tempo-api) (VCR
+cassettes recorded on 2026-03-10: `dateRelevant=2026-01-08`, and a
+`ZENF_BONUS` day of 2025-10-16), MyElectricalData and JC144's exporters. Facts
+only: none of their code is used.
+
 ## EDF (prices and rules)
 
 The default prices, peak hours and day rules of the contract template come from public documents of EDF SA:

@@ -794,11 +794,12 @@ test('a reconnection while a publication runs: the new connection still publishe
 
 // --- Review r1 ----------------------------------------------------------------
 
-test('dateRelevant without leading zeros on a day and a month 1-9 (the reference form)', async (t) => {
+test('dateRelevant with leading zeros on a day and a month 1-9 (the form proved for real)', async (t) => {
   const { app, gladys, edf } = await setup({ now: Date.parse('2027-01-05T08:00:00Z') });
   stopAfter(t, app);
-  assert.equal(edf.requests[0].url, `${STATUS_URL}?dateRelevant=2027-1-5`);
-  assert.equal(edf.requests[0].date, '2027-1-5');
+  assert.equal(edf.requests[0].url, `${STATUS_URL}?dateRelevant=2027-01-05`);
+  assert.equal(edf.requests[0].date, '2027-01-05');
+  assert.doesNotMatch(edf.requests[0].url, /urlPlaasmaCommerce/, 'never the website own parameter');
   assert.deepEqual(calendarOf(gladys), { '2027-01-05': 'eco' }, 'stored under the ISO date');
 });
 
@@ -1021,4 +1022,21 @@ test('Easter Monday in the season is a holiday, not a missed day', async (t) => 
   assert.ok(!missed.includes('2027-03-29'), 'Easter Monday 2027');
   assert.ok(missed.includes('2027-03-30'));
   assert.ok(missed.includes('2027-03-26'));
+});
+
+test('a clean stop with /data hanging waits 3 s at most for the last write', async (t) => {
+  const store = createMemoryStore();
+  const { app, clock } = await setup({ store });
+  void t;
+  store.save = () => new Promise(() => {});
+  let done = false;
+  const stopped = app.stop().then(() => {
+    done = true;
+  });
+  for (let i = 0; i < 20; i += 1) await new Promise((resolve) => setImmediate(resolve));
+  await clock.advance(2 * SECOND);
+  assert.equal(done, false);
+  await clock.advance(1.5 * SECOND);
+  await stopped;
+  assert.equal(done, true);
 });

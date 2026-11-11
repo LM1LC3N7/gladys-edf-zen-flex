@@ -126,8 +126,8 @@
           "fr": "EDF Zen Flex (Zen Week-End, option Flex)"
         },
         "description": {
-          "en": "Peak hours 08:00-13:00 and 18:00-20:00 every day; up to 20 Sobriété days a year with expensive peak hours. Bonus days are priced as Éco days (the EDF reward is not computed). A day not read is priced as an Éco day; a day missed entirely is never caught up (named in the status).",
-          "fr": "Heures pleines 8 h-13 h et 18 h-20 h tous les jours ; jusqu’à 20 jours Sobriété par an aux heures pleines chères. Les jours Bonus sont comptés comme des jours Éco (la récompense EDF n’est pas calculée). Un jour non lu est compté comme un jour Éco ; un jour manqué en entier n’est jamais rattrapé (le statut le nomme)."
+          "en": "Peak hours 08:00-13:00 and 18:00-20:00 every day; up to 20 Sobriété days a year with expensive peak hours. Bonus days are priced as Éco days (the EDF reward is not computed). A day not read is priced as an Éco day; the module only reads today and tomorrow, a missed day is not caught up (named in the status).",
+          "fr": "Heures pleines 8 h-13 h et 18 h-20 h tous les jours ; jusqu’à 20 jours Sobriété par an aux heures pleines chères. Les jours Bonus sont comptés comme des jours Éco (la récompense EDF n’est pas calculée). Un jour non lu est compté comme un jour Éco ; le module ne lit que le jour même et le lendemain, un jour manqué n’est pas rattrapé (le statut le nomme)."
         },
         "country": "FR",
         "currency": "EUR",

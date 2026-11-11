@@ -125,8 +125,8 @@ export const T = {
           missed.length > MAX_MISSED_SHOWN ? ` (+${missed.length - MAX_MISSED_SHOWN})` : '';
         parts.push(
           lang === 'en'
-            ? `Not read (EDF answers only for today and tomorrow): ${shown}${more}, priced as Éco days; check them in your EDF customer area.`
-            : `Non lu(s) (EDF ne répond que pour aujourd’hui et demain) : ${shown}${more}, compté(s) comme jours Éco ; à vérifier dans votre espace client EDF.`,
+            ? `Not read (the module only reads today and tomorrow, a missed day is not caught up): ${shown}${more}, priced as Éco days; check them in your EDF customer area.`
+            : `Non lu(s) (le module ne lit que le jour même et le lendemain, un jour manqué n’est pas rattrapé) : ${shown}${more}, compté(s) comme jours Éco ; à vérifier dans votre espace client EDF.`,
         );
       }
       if (calendar === 'refused') {

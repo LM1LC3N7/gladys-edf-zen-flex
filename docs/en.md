@@ -68,7 +68,7 @@ EDF may revise them twice a year: use those of your bill.
 - **A day absent from the calendar** (not announced yet, module stopped): priced as an Éco day, as most days
   are. A day read later (the day before at 16:00, or on the day) enters the calendar and Gladys recomputes the
   costs concerned.
-- **A day missed entirely is never caught up**: EDF only answers for today and tomorrow. If the module or the
+- **A day missed entirely is not caught up**: the module only reads today and tomorrow. If the module or the
   EDF website is unavailable from 16:00 the day before to the end of the day, that day stays priced as Éco, even
   if it was a Sobriété day (its peak hours then underpriced by 0.53 EUR/kWh). The status names these days
   (weekdays of the Sobriété season, public holidays excepted): check them in your EDF customer area.

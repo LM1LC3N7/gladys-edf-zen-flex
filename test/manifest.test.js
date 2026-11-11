@@ -115,7 +115,7 @@ test('the calendar, the template and the scene trigger match the code', () => {
   assert.deepEqual(calendars, [
     { key: CALENDAR_KEY, granularity: 'day', timezone: TIMEZONE, values: DAY_TYPES },
   ]);
-  assert.deepEqual(Object.values(CODES).sort(), [...DAY_TYPES].sort());
+  assert.deepEqual([...new Set(Object.values(CODES))].sort(), [...DAY_TYPES].sort());
   assert.equal(templates.length, 1);
   const [template] = templates;
   assert.equal(template.key, TEMPLATE_KEY);

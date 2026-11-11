@@ -53,7 +53,7 @@ export function createEdf({ now }) {
     if (out instanceof Response) return out;
     if (out !== undefined) return json(out);
     const p = paris(now());
-    // The endpoint answers only for today, in the form without leading zeros.
+    // The fake answers only for today (the module never asks another date).
     if (request.date !== dateParam(p.date)) {
       return new Response('<html>error</html>', { status: 503 });
     }

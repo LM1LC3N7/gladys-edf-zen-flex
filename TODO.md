@@ -2,9 +2,9 @@
 
 ## Before announcing
 
-- [ ] **Real reading on 2026-12-01** (a day 1-9) before any publication: the
-      module sends `dateRelevant=2026-12-1` (the reference form, review r1 I1).
-      If EDF answers 503, switch `dateParam` (src/constants.js) to `2026-12-01`.
+- [ ] Check after publication, on 2026-12-01 (a day 1-9), that the reading of
+      `dateRelevant=2026-12-01` succeeds (the form is already proved for real by
+      other clients, review r2).
 
 - [ ] Test on a real Gladys 5.2+: install, the status, a Zen Flex contract on a
       meter, the costs of an Éco and a Sobriété day, the "day announced" trigger
@@ -23,9 +23,11 @@
       on the calendar before the first release (it follows the owner's manifest).
 - [ ] Whether the endpoint keeps its form after the winter 2026-2027 (first
       Sobriété and Bonus days read for real), and how a Bonus day is coded when
-      EDF tells "reduce" or "shift" (only `ZENF_BONIF` is known).
-- [ ] Whether a 503 for another date than today stays the rule (the module
-      only asks today's date).
+      EDF tells "reduce" or "shift" (`ZENF_BONIF` and `ZENF_BONUS` are both
+      seen; which is which is unknown, both are a Bonus day here).
+- [ ] Catching up a missed day would need the website's own
+      `urlPlaasmaCommerce` parameter (review r2): not sent, it identifies the
+      EDF website itself; the agreement covers the endpoint with our identity.
 
 ## Ideas
 
@@ -61,13 +63,13 @@
   changed by EDF replaces the old one (logged) and Gladys recalculates.
   Days answered on a weekend or outside the Sobriété season are published as
   EDF gives them (the meter follows EDF's signal), not second-guessed.
-- **`dateRelevant` without leading zeros** (review r1): the reference sends
-  `{year}-{month}-{day}` (api.py:20, used daily by its users); the script of the
-  EDF Zen Flex page (component `ejpTempoPmButton`, read on 2026-11-11) does not
-  call the endpoint, so no other form was found. Checked equal on 2026-11-11
-  only; pinned by a test on 2027-01-05.
-- **Missed days never caught up** (review r1): the endpoint answers for today
-  and tomorrow only. Such a day stays priced as Éco (fallback); the status
+- **`dateRelevant` as `YYYY-MM-DD` with zeros** (review r2): recorded for real
+  on this path, without any other parameter, on a day 1-9 (jarthod/tempo-api
+  cassettes of 2026-03-10); the reference sends it without zeros, the server
+  reads both (review r2). Pinned by a test on 2027-01-05. No
+  `urlPlaasmaCommerce`: it is the EDF website's own parameter.
+- **Missed days not caught up** (reviews r1, r2): the module only reads today
+  and tomorrow (past dates would need the website's own parameter). Such a day stays priced as Éco (fallback); the status
   names the weekdays of the Sobriété season (French public holidays excepted)
   never read since the first reading, a year back at most, to be checked in
   the EDF customer area.
